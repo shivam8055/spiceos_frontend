@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 
-class DashboardHeader extends StatelessWidget {
-  const DashboardHeader({super.key});
+class OrdersHeader extends StatelessWidget {
+  const OrdersHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
             Text(
-              'Dashboard',
+              "Orders",
               style: TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
@@ -20,18 +19,22 @@ class DashboardHeader extends StatelessWidget {
             ),
             SizedBox(height: 6),
             Text(
-              'Welcome to SpiceOS',
+              "Manage all restaurant orders",
               style: TextStyle(
                 color: Colors.grey,
-                fontSize: 15,
               ),
             ),
           ],
         ),
+
+        const Spacer(),
+
         FilledButton.icon(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pushNamed(context, '/orders/new');
+          },
           icon: const Icon(Icons.add),
-          label: const Text('New Order'),
+          label: const Text("New Order"),
         ),
       ],
     );

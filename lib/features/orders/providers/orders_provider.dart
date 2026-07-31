@@ -2,51 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/order.dart';
 import '../models/order_filter.dart';
-import 'order_filter_provider.dart';
+import '../providers/order_filter_provider.dart';
+import '../repositories/mock_orders_repository.dart';
+import '../repositories/orders_repository.dart';
 
-final demoOrdersProvider = Provider<List<Order>>((ref) {
-  return [
-    Order(
-      id: '1',
-      orderNumber: '#1001',
-      customerId: 'C001',
-      customerName: 'Rahul Kumar',
-      primaryItem: 'Chicken Biryani',
-      createdAt: DateTime.now(),
-      status: OrderStatus.preparing,
-      paymentStatus: PaymentStatus.paid,
-      totalAmount: 349,
-      orderSource: 'WhatsApp',
-    ),
-    Order(
-      id: '2',
-      orderNumber: '#1002',
-      customerId: 'C002',
-      customerName: 'Anjali Singh',
-      primaryItem: 'Paneer Butter Masala',
-      createdAt: DateTime.now(),
-      status: OrderStatus.outForDelivery,
-      paymentStatus: PaymentStatus.paid,
-      totalAmount: 420,
-      orderSource: 'Website',
-    ),
-    Order(
-      id: '3',
-      orderNumber: '#1003',
-      customerId: 'C003',
-      customerName: 'Amit Raj',
-      primaryItem: 'Veg Thali',
-      createdAt: DateTime.now(),
-      status: OrderStatus.delivered,
-      paymentStatus: PaymentStatus.paid,
-      totalAmount: 280,
-      orderSource: 'Walk-in',
-    ),
-  ];
+final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
+  return MockOrdersRepository();
+});
+
+final ordersProvider = Provider<List<Order>>((ref) {
+  final repository = ref.watch(ordersRepositoryProvider);
+  return repository.getOrders();
 });
 
 final filteredOrdersProvider = Provider<List<Order>>((ref) {
-  final orders = ref.watch(demoOrdersProvider);
+  final orders = ref.watch(ordersProvider);
   final filter = ref.watch(orderFilterProvider);
 
   switch (filter) {
@@ -54,14 +24,10 @@ final filteredOrdersProvider = Provider<List<Order>>((ref) {
       return orders;
 
     case OrderFilter.preparing:
-      return orders
-          .where((o) => o.status == OrderStatus.preparing)
-          .toList();
+      return orders.where((o) => o.status == OrderStatus.preparing).toList();
 
     case OrderFilter.ready:
-      return orders
-          .where((o) => o.status == OrderStatus.ready)
-          .toList();
+      return orders.where((o) => o.status == OrderStatus.ready).toList();
 
     case OrderFilter.delivery:
       return orders
@@ -69,8 +35,6 @@ final filteredOrdersProvider = Provider<List<Order>>((ref) {
           .toList();
 
     case OrderFilter.delivered:
-      return orders
-          .where((o) => o.status == OrderStatus.delivered)
-          .toList();
+      return orders.where((o) => o.status == OrderStatus.delivered).toList();
   }
 });

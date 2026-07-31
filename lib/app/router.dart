@@ -8,6 +8,7 @@ import '../features/kitchen/screens/kitchen_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/orders/screens/new_order_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -20,6 +21,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/orders',
       builder: (context, state) => const OrdersScreen(),
+    ),
+
+    GoRoute(
+      path: '/orders/new',
+      builder: (context, state) => const NewOrderScreen(),
     ),
 
     GoRoute(

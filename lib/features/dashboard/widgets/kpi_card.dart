@@ -17,12 +17,17 @@ class KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(
+          color: Color(0xFFE5E7EB),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 22,
@@ -33,14 +38,16 @@ class KpiCard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const Spacer(),
 
             Text(
               kpi.title,
               style: const TextStyle(
                 color: Colors.grey,
-                fontSize: 14,
+                fontSize: 13,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
 
             const SizedBox(height: 6),
@@ -48,18 +55,24 @@ class KpiCard extends StatelessWidget {
             Text(
               kpi.value,
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 1,
             ),
 
             const SizedBox(height: 6),
 
             Text(
               kpi.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: kpi.positive ? Colors.green : Colors.red,
+                color: kpi.positive
+                    ? Colors.green
+                    : Colors.red,
                 fontWeight: FontWeight.w600,
+                fontSize: 13,
               ),
             ),
           ],

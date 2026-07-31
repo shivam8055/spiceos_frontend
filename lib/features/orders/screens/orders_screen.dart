@@ -5,6 +5,8 @@ import '../../../core/widgets/app_shell.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_filter_bar.dart';
+import '../widgets/orders_header.dart';
+import '../widgets/orders_statistics.dart';
 import 'order_details_screen.dart';
 
 class OrdersScreen extends ConsumerWidget {
@@ -15,28 +17,41 @@ class OrdersScreen extends ConsumerWidget {
     final orders = ref.watch(filteredOrdersProvider);
 
     return AppShell(
-      child: Column(
-        children: [
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Search order...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            const OrdersHeader(),
+
+            const SizedBox(height: 24),
+
+            const OrdersStatistics(),
+
+            const SizedBox(height: 24),
+
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search orders...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          const OrderFilters(),
+            const OrderFilters(),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-          Expanded(
-            child: ListView.separated(
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: orders.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) =>
+              const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 return OrderCard(
                   order: orders[index],
@@ -44,17 +59,18 @@ class OrdersScreen extends ConsumerWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => OrderDetailsScreen(
-                          order: orders[index],
-                        ),
+                        builder: (_) =>
+                            OrderDetailsScreen(
+                              order: orders[index],
+                            ),
                       ),
                     );
                   },
                 );
               },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_shell.dart';
-import '../providers/dashboard_provider.dart';
-import '../widgets/kpi_card.dart';
+import '../widgets/dashboard_header.dart';
+import '../widgets/dashboard_stats.dart';
+import '../widgets/inventory_alerts.dart';
+import '../widgets/kitchen_queue.dart';
+import '../widgets/recent_orders_card.dart';
+import '../widgets/sales_chart.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -10,33 +14,48 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppShell(
-      child: GridView.count(
-        crossAxisCount: 4,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-        childAspectRatio: 1.1,
-        children: [
-          KpiCard(
-            kpi: dashboardData[0],
-            icon: Icons.currency_rupee,
-            color: Colors.green,
-          ),
-          KpiCard(
-            kpi: dashboardData[1],
-            icon: Icons.receipt_long,
-            color: Colors.deepOrange,
-          ),
-          KpiCard(
-            kpi: dashboardData[2],
-            icon: Icons.people,
-            color: Colors.blue,
-          ),
-          KpiCard(
-            kpi: dashboardData[3],
-            icon: Icons.delivery_dining,
-            color: Colors.purple,
-          ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const DashboardHeader(),
+
+            const SizedBox(height: 24),
+
+            const DashboardStats(),
+
+            const SizedBox(height: 32),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Expanded(
+                  flex: 2,
+                  child: SalesChart(),
+                ),
+                SizedBox(width: 24),
+                Expanded(
+                  child: KitchenQueue(),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 24),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Expanded(
+                  child: RecentOrdersCard(),
+                ),
+                SizedBox(width: 24),
+                Expanded(
+                  child: InventoryAlerts(),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
