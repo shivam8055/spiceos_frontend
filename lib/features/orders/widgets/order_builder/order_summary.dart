@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/new_order_provider.dart';
+import '../../providers/pricing_provider.dart';
+import 'discount_card.dart';
+import 'payment_selector.dart';
 
 class OrderSummary extends ConsumerWidget {
   const OrderSummary({super.key});
@@ -12,24 +15,31 @@ class OrderSummary extends ConsumerWidget {
     final items = ref.watch(newOrderProvider);
 
     final subtotal = notifier.total;
-    final gst = subtotal * 0.05;
-    final total = subtotal + gst;
+    final discount = ref.watch(discountProvider);
+    final deliveryCharge = ref.watch(deliveryChargeProvider);
+    final gstRate = ref.watch(gstRateProvider);
+
+    final taxableAmount = subtotal - discount;
+    final gst = taxableAmount * gstRate;
+    final grandTotal = taxableAmount + gst + deliveryCharge;
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(
+          color: Color(0xFFE5E7EB),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               "Order Summary",
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -41,56 +51,108 @@ class OrderSummary extends ConsumerWidget {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(item.name),
-                subtitle: Text("Qty: ${item.quantity}"),
+                subtitle: Text("Qty ${item.quantity}"),
                 trailing: Text(
                   "₹${item.total.toStringAsFixed(0)}",
                 ),
               ),
             ),
 
-            const Divider(),
+            const Divider(height: 32),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Subtotal"),
-                Text("₹${subtotal.toStringAsFixed(0)}"),
-              ],
+            const DiscountCard(),
+
+            const SizedBox(height: 16),
+
+            TextFormField(
+              initialValue: deliveryCharge.toStringAsFixed(0),
+              decoration: const InputDecoration(
+                labelText: "Delivery Charge",
+                prefixText: "₹ ",
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                ref.read(deliveryChargeProvider.notifier).state =
+                    double.tryParse(value) ?? 0;
+              },
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("GST (5%)"),
-                Text("₹${gst.toStringAsFixed(0)}"),
-              ],
+            const PaymentSelector(),
+
+            const Divider(height: 32),
+
+            _priceRow(
+              "Subtotal",
+              subtotal,
+            ),
+
+            _priceRow(
+              "Discount",
+              -discount,
+              color: Colors.red,
+            ),
+
+            _priceRow(
+              "Delivery",
+              deliveryCharge,
+            ),
+
+            _priceRow(
+              "GST",
+              gst,
             ),
 
             const Divider(),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Grand Total",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                Text(
-                  "₹${total.toStringAsFixed(0)}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+            _priceRow(
+              "Grand Total",
+              grandTotal,
+              isBold: true,
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.save),
+                label: const Text("Save Order"),
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _priceRow(
+      String title,
+      double amount, {
+        Color? color,
+        bool isBold = false,
+      }) {
+    final style = TextStyle(
+      fontSize: isBold ? 18 : 15,
+      fontWeight:
+      isBold ? FontWeight.bold : FontWeight.w500,
+      color: color,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment:
+        MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: style),
+          Text(
+            "₹${amount.toStringAsFixed(2)}",
+            style: style,
+          ),
+        ],
       ),
     );
   }
