@@ -10,7 +10,6 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppShell(
-      title: 'Dashboard',
       child: GridView.count(
         crossAxisCount: 4,
         crossAxisSpacing: 20,
