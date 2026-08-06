@@ -50,7 +50,15 @@ class MockOrdersRepository implements OrdersRepository {
   }
 
   @override
-  Future<void> updateOrder(Order order) async {}
+  Future<void> updateOrder(Order order) async {
+    final index = _orders.indexWhere((e) => e.id == order.id);
+
+    if (index == -1) {
+      throw Exception('Order not found: ${order.id}');
+    }
+
+    _orders[index] = order;
+  }
 
   @override
   Future<void> deleteOrder(String id) async {

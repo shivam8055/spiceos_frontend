@@ -1,4 +1,5 @@
 enum OrderStatus {
+  created,
   preparing,
   ready,
   outForDelivery,
@@ -42,4 +43,30 @@ class Order {
     required this.totalAmount,
     required this.orderSource,
   });
+
+  Order copyWith({
+    String? id,
+    String? orderNumber,
+    String? customerId,
+    String? customerName,
+    String? primaryItem,
+    DateTime? createdAt,
+    OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    double? totalAmount,
+    String? orderSource,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      primaryItem: primaryItem ?? this.primaryItem,
+      createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      totalAmount: totalAmount ?? this.totalAmount,
+      orderSource: orderSource ?? this.orderSource,
+    );
+  }
 }

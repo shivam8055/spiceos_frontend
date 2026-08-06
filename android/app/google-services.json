@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "165985692815",
+    "project_id": "spicebox-133b4",
+    "storage_bucket": "spicebox-133b4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165985692815:android:e4efbe44db99c1da16d4fa",
+        "android_client_info": {
+          "package_name": "com.spicebox.spicebox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-BzK1zF4Lo_kzQCcI_l381Z_d3aono2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/cards/app_card.dart';
+
 class InventoryAlerts extends StatelessWidget {
   const InventoryAlerts({super.key});
 
@@ -11,38 +17,36 @@ class InventoryAlerts extends StatelessWidget {
       ('Cooking Oil', 'Critical'),
     ];
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Inventory Alerts',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Inventory Alerts',
+            style: AppTextStyles.heading3,
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+
+          ...alerts.map(
+                (item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                AppIcons.warning,
+                color: AppColors.warning,
+              ),
+              title: Text(
+                item.$1,
+                style: AppTextStyles.bodyLarge,
+              ),
+              subtitle: Text(
+                item.$2,
+                style: AppTextStyles.caption,
               ),
             ),
-            const SizedBox(height: 16),
-            ...alerts.map(
-                  (item) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.orange,
-                ),
-                title: Text(item.$1),
-                subtitle: Text(item.$2),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -5,6 +5,10 @@ import '../../providers/new_order_provider.dart';
 import '../../providers/pricing_provider.dart';
 import 'discount_card.dart';
 import 'payment_selector.dart';
+import '../../../shared/models/order_stage.dart';
+import '../../../shared/providers/order_workflow_provider.dart';
+import '../../services/order_factory.dart';
+import '../../providers/orders_provider.dart';
 
 class OrderSummary extends ConsumerWidget {
   const OrderSummary({super.key});
@@ -117,7 +121,34 @@ class OrderSummary extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  final orderId =
+                      'ORD-${DateTime.now().millisecondsSinceEpoch}';
+
+                  // Publish workflow event
+                  ref.read(orderWorkflowProvider.notifier).publish(
+                    orderId: orderId,
+                    stage: OrderStage.created,
+                  );
+
+                  // Add order to Kitchen queue
+                  final order = OrderFactory.createWalkInOrder(
+                    orderId: orderId,
+                    orderNumber: '#${DateTime.now().millisecondsSinceEpoch % 10000}',
+                    customerName: 'Walk-in Customer',
+                    items: items
+                        .map((item) => '${item.name} x${item.quantity}')
+                        .toList(),
+                    totalAmount: grandTotal,
+                  );
+
+                  ref.read(ordersProvider.notifier).createOrder(order);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Order $orderId created successfully'),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.save),
                 label: const Text("Save Order"),
               ),

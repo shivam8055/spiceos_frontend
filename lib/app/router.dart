@@ -9,10 +9,35 @@ import '../features/orders/screens/orders_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/orders/screens/new_order_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final appRouter = GoRouter(
+import '../features/auth/providers/auth_provider.dart';
+import '../features/auth/screens/login_screen.dart';
+
+GoRouter createRouter(WidgetRef ref) {
+  return GoRouter(
   initialLocation: '/',
-  routes: [
+    redirect: (context, state) {
+      final authState = ref.watch(authStateProvider);
+
+      final loggedIn = authState.value ?? false;
+      final loggingIn = state.matchedLocation == '/login';
+
+      if (!loggedIn && !loggingIn) {
+        return '/login';
+      }
+
+      if (loggedIn && loggingIn) {
+        return '/';
+      }
+
+      return null;
+    },
+    routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const DashboardScreen(),
@@ -59,3 +84,4 @@ final appRouter = GoRouter(
     ),
   ],
 );
+}

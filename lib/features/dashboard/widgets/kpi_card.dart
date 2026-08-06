@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/cards/app_card.dart';
 import '../models/dashboard_kpi.dart';
 
 class KpiCard extends StatelessWidget {
@@ -16,67 +20,52 @@ class KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(
-          color: Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color.withValues(alpha: 0.12),
-              child: Icon(
-                icon,
-                color: color,
-              ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(
+              icon,
+              color: color,
             ),
+          ),
 
-            const Spacer(),
+          const Spacer(),
 
-            Text(
-              kpi.title,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 13,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            kpi.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
             ),
+          ),
 
-            const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.sm),
 
-            Text(
-              kpi.value,
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
+          Text(
+            kpi.value,
+            maxLines: 1,
+            style: AppTextStyles.display,
+          ),
+
+          const SizedBox(height: AppSpacing.sm),
+
+          Text(
+            kpi.subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.label.copyWith(
+              color: kpi.positive
+                  ? AppColors.success
+                  : AppColors.error,
             ),
-
-            const SizedBox(height: 6),
-
-            Text(
-              kpi.subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: kpi.positive
-                    ? Colors.green
-                    : Colors.red,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

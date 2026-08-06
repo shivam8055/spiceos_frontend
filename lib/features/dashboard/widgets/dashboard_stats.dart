@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../providers/dashboard_provider.dart';
 import 'kpi_card.dart';
 
@@ -12,25 +15,25 @@ class DashboardStats extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: dashboardData.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
+        crossAxisSpacing: AppSpacing.lg,
+        mainAxisSpacing: AppSpacing.lg,
         childAspectRatio: 1.05,
       ),
       itemBuilder: (context, index) {
         final icons = [
-          Icons.currency_rupee,
-          Icons.receipt_long,
-          Icons.people,
-          Icons.delivery_dining,
+          AppIcons.revenue,
+          AppIcons.orders,
+          AppIcons.customers,
+          AppIcons.delivery,
         ];
 
         final colors = [
-          Colors.green,
-          Colors.deepOrange,
-          Colors.blue,
-          Colors.purple,
+          AppColors.success,
+          AppColors.primary,
+          AppColors.info,
+          AppColors.secondary,
         ];
 
         return KpiCard(
