@@ -1,7 +1,7 @@
 import '../models/order.dart';
 
 abstract class OrdersRepository {
-  List<Order> getOrders();
+  Future<List<Order>> getOrders();
 
   Future<void> createOrder(Order order);
 

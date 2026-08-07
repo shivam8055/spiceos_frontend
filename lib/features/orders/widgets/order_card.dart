@@ -30,22 +30,21 @@ class OrderCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              Row(
-                children: [
-
-                  Text(
-                    order.orderNumber,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+              Expanded(
+                child: Text(
+                  order.orderNumber,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
-
-                  const Spacer(),
-
-                  OrderStatusChip(status: order.status),
-                ],
+                ),
               ),
+
+              const SizedBox(width: 8),
+
+              OrderStatusChip(status: order.status),
 
               const SizedBox(height: 12),
 
@@ -93,11 +92,17 @@ class OrderCard extends StatelessWidget {
                     color: Colors.grey.shade600,
                   ),
 
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
 
-                  Text(order.orderSource),
+                  Expanded(
+                    child: Text(
+                      order.orderSource,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
 
-                  const Spacer(),
+                  const SizedBox(width: 8),
 
                   const Icon(Icons.chevron_right),
                 ],

@@ -11,15 +11,25 @@ class DashboardStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
+    final crossAxisCount = width < 600
+        ? 1
+        : width < 900
+        ? 2
+        : width < 1200
+        ? 3
+        : 4;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: dashboardData.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: AppSpacing.lg,
         mainAxisSpacing: AppSpacing.lg,
-        childAspectRatio: 1.05,
+        childAspectRatio: 0.85,
       ),
       itemBuilder: (context, index) {
         final icons = [

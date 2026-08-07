@@ -80,14 +80,21 @@ class AppSidebar extends StatelessWidget {
                 final item = items[index];
                 final selected = currentRoute == item.route;
 
-                return ListTile(
-                  leading: Icon(
-                    item.icon,
-                    color: selected ? Colors.deepOrange : Colors.grey,
+                return Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: Icon(
+                      item.icon,
+                      color: selected ? Colors.deepOrange : Colors.grey,
+                    ),
+                    title: Text(item.title),
+                    selected: selected,
+                    selectedTileColor: const Color(0xFFFFF1EB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onTap: () => context.go(item.route),
                   ),
-                  title: Text(item.title),
-                  selected: selected,
-                  onTap: () => context.go(item.route),
                 );
               },
             ),

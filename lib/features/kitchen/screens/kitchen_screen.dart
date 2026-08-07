@@ -123,7 +123,7 @@ class _KitchenColumn extends ConsumerWidget {
 
                       switch (order.status) {
                         case KitchenOrderStatus.waiting:
-                          notifier.startCooking(order.id);
+                          notifier.startPreparing(order.id);
                           break;
 
                         case KitchenOrderStatus.cooking:

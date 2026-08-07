@@ -42,7 +42,9 @@ class MockOrdersRepository implements OrdersRepository {
   ];
 
   @override
-  List<Order> getOrders() => _orders;
+  Future<List<Order>> getOrders() async {
+    return List<Order>.from(_orders);
+  }
 
   @override
   Future<void> createOrder(Order order) async {

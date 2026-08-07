@@ -42,8 +42,8 @@ class KitchenNotifier extends StateNotifier<List<KitchenOrder>> {
 
   final Ref ref;
 
-  void startCooking(String id) {
-    ref.read(ordersProvider.notifier).startCooking(id);
+  void startPreparing(String id) {
+    ref.read(ordersProvider.notifier).startPreparing(id);
   }
 
   void markReady(String id) {

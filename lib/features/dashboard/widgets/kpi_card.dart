@@ -24,9 +24,10 @@ class KpiCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           CircleAvatar(
-            radius: 22,
+            radius: 18,
             backgroundColor: color.withValues(alpha: 0.12),
             child: Icon(
               icon,
@@ -45,15 +46,18 @@ class KpiCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
 
-          Text(
-            kpi.value,
-            maxLines: 1,
-            style: AppTextStyles.display,
+          FittedBox(
+            alignment: Alignment.centerLeft,
+            fit: BoxFit.scaleDown,
+            child: Text(
+              kpi.value,
+              style: AppTextStyles.display,
+            ),
           ),
 
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
 
           Text(
             kpi.subtitle,

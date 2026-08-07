@@ -1,24 +1,60 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../constants/api_constants.dart';
+
 class ApiClient {
-  const ApiClient();
-
-  Future<void> get(String path) {
-    throw UnimplementedError();
+  ApiClient()
+      : _dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ),
+  ) {
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ),
+    );
   }
 
-  Future<void> post(String path, Object? body) {
-    throw UnimplementedError();
+  final Dio _dio;
+
+  Future<Response<dynamic>> get(String path) async {
+    return _dio.get(path);
   }
 
-  Future<void> put(String path, Object? body) {
-    throw UnimplementedError();
+  Future<Response<dynamic>> post(
+      String path,
+      Object? body,
+      ) async {
+    return _dio.post(
+      path,
+      data: body,
+    );
   }
 
-  Future<void> delete(String path) {
-    throw UnimplementedError();
+  Future<Response<dynamic>> put(
+      String path,
+      Object? body,
+      ) async {
+    return _dio.put(
+      path,
+      data: body,
+    );
+  }
+
+  Future<Response<dynamic>> delete(String path) async {
+    return _dio.delete(path);
   }
 }
 
 final apiClientProvider = Provider<ApiClient>(
-      (ref) => const ApiClient(),
+      (ref) => ApiClient(),
 );

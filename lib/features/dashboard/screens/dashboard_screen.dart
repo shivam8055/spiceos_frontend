@@ -7,6 +7,7 @@ import '../widgets/inventory_alerts.dart';
 import '../widgets/kitchen_queue.dart';
 import '../widgets/recent_orders_card.dart';
 import '../widgets/sales_chart.dart';
+import '../widgets/quick_actions.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -24,7 +25,11 @@ class DashboardScreen extends StatelessWidget {
 
             const DashboardStats(),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            const QuickActions(),
+
+            const SizedBox(height: 24),
 
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

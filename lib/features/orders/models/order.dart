@@ -44,6 +44,38 @@ class Order {
     required this.orderSource,
   });
 
+  factory Order.fromJson(Map<String, dynamic> json) {
+    return Order(
+      id: json['id'].toString(),
+      orderNumber: json['order_number'] ?? '',
+      customerId: json['customer_id'] ?? '',
+      customerName: json['customer_name'] ?? '',
+      primaryItem: json['primary_item'] ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      status: OrderStatus.created,
+      paymentStatus: PaymentStatus.paid,
+      totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
+      orderSource: json['order_source'] ?? 'Unknown',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'order_number': orderNumber,
+      'customer_id': customerId,
+      'customer_name': customerName,
+      'primary_item': primaryItem,
+      'created_at': createdAt.toIso8601String(),
+      'status': status.name,
+      'payment_status': paymentStatus.name,
+      'total': totalAmount,
+      'order_source': orderSource,
+    };
+  }
+
   Order copyWith({
     String? id,
     String? orderNumber,

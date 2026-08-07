@@ -62,7 +62,11 @@ class KitchenOrderCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             ...order.items.map(
-                  (e) => Text("• $e"),
+                  (e) => Text(
+                "• $e",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
 
             const SizedBox(height: 16),

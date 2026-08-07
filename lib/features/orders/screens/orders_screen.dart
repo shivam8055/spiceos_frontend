@@ -8,6 +8,9 @@ import '../widgets/order_filter_bar.dart';
 import '../widgets/orders_header.dart';
 import '../widgets/orders_statistics.dart';
 import 'order_details_screen.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/widgets/inputs/app_text_field.dart';
+import '../../../core/theme/app_spacing.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
@@ -24,27 +27,22 @@ class OrdersScreen extends ConsumerWidget {
 
             const OrdersHeader(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             const OrdersStatistics(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Search orders...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            AppTextField(
+              hint: 'Search orders...',
+              prefixIcon: AppIcons.search,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             const OrderFilters(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             ListView.separated(
               shrinkWrap: true,
