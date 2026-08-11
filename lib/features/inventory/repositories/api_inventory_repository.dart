@@ -1,4 +1,5 @@
-import '../../../core/constants/api_constants.dart';
+
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../models/inventory_item.dart';
 import 'inventory_repository.dart';
@@ -10,7 +11,7 @@ class ApiInventoryRepository implements InventoryRepository {
 
   @override
   Future<List<InventoryItem>> getInventory() async {
-    final response = await api.get(ApiConstants.inventory);
+    final response = await api.get(ApiEndpoints.inventory);
 
     final data = response.data as List;
 
@@ -28,7 +29,7 @@ class ApiInventoryRepository implements InventoryRepository {
       InventoryItem item,
       ) async {
     final response = await api.post(
-      ApiConstants.inventory,
+      ApiEndpoints.inventory,
       item.toJson(),
     );
 
@@ -40,7 +41,7 @@ class ApiInventoryRepository implements InventoryRepository {
       InventoryItem item,
       ) async {
     await api.put(
-      '${ApiConstants.inventory}${item.id}',
+      '${ApiEndpoints.inventory}${item.id}',
       item.toJson(),
     );
   }
@@ -50,7 +51,7 @@ class ApiInventoryRepository implements InventoryRepository {
       int id,
       ) async {
     await api.delete(
-      '${ApiConstants.inventory}$id',
+      '${ApiEndpoints.inventory}$id',
     );
   }
 }

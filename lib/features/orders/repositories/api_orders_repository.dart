@@ -1,4 +1,5 @@
-import '../../../core/constants/api_constants.dart';
+
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../models/order.dart';
 import 'orders_repository.dart';
@@ -10,7 +11,7 @@ class ApiOrdersRepository implements OrdersRepository {
 
   @override
   Future<List<Order>> getOrders() async {
-    final response = await api.get(ApiConstants.orders);
+    final response = await api.get(ApiEndpoints.orders);
 
     final data = response.data as List;
 
@@ -26,7 +27,7 @@ class ApiOrdersRepository implements OrdersRepository {
   @override
   Future<void> createOrder(Order order) async {
     await api.post(
-      ApiConstants.orders,
+      ApiEndpoints.orders,
       {
         "order_number": order.orderNumber,
         "customer_name": order.customerName,

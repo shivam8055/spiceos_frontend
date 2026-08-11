@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/providers/auth_notifier.dart';
 import '../models/navigation_item.dart';
 
-class AppSidebar extends StatelessWidget {
+class AppSidebar extends ConsumerWidget {
   const AppSidebar({super.key});
 
   static const List<NavigationItem> items = [
@@ -50,7 +52,7 @@ class AppSidebar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute =
         GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
 
@@ -59,12 +61,15 @@ class AppSidebar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
-          right: BorderSide(color: Color(0xFFE5E7EB)),
+          right: BorderSide(
+            color: Color(0xFFE5E7EB),
+          ),
         ),
       ),
       child: Column(
         children: [
           const SizedBox(height: 32),
+
           const Text(
             '🌶 SpiceOS',
             style: TextStyle(
@@ -72,7 +77,9 @@ class AppSidebar extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 32),
+
           Expanded(
             child: ListView.builder(
               itemCount: items.length,
@@ -85,7 +92,9 @@ class AppSidebar extends StatelessWidget {
                   child: ListTile(
                     leading: Icon(
                       item.icon,
-                      color: selected ? Colors.deepOrange : Colors.grey,
+                      color: selected
+                          ? Colors.deepOrange
+                          : Colors.grey,
                     ),
                     title: Text(item.title),
                     selected: selected,
@@ -96,6 +105,30 @@ class AppSidebar extends StatelessWidget {
                     onTap: () => context.go(item.route),
                   ),
                 );
+              },
+            ),
+          ),
+
+          const Divider(
+            height: 1,
+            color: Color(0xFFE5E7EB),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: ListTile(
+              leading: const Icon(
+                Icons.logout_outlined,
+                color: Colors.grey,
+              ),
+              title: const Text('Sign Out'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onTap: () async {
+                await ref
+                    .read(authNotifierProvider.notifier)
+                    .signOut();
               },
             ),
           ),

@@ -1,14 +1,12 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Android Emulator
-  //static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:8000',
+  );
 
-  // Windows Desktop
-   static const String baseUrl = 'http://127.0.0.1:8000';
-
-  static const orders = '/orders/';
-
-  static const inventory = '/inventory/';
-
+  static const String orders = '/orders/';
+  static const String inventory = '/inventory/';
+  static const String authMe = '/auth/me';
 }

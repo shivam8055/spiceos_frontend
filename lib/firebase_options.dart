@@ -63,7 +63,6 @@ class DefaultFirebaseOptions {
     projectId: 'spicebox-133b4',
     storageBucket: 'spicebox-133b4.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyALLWKajPGF7QzR9kEMhO0ivxo0saXBm1E',
     appId: '1:165985692815:ios:809ddfc3d27b689e16d4fa',

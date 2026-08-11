@@ -1,21 +1,51 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/api_constants.dart';
 
 class ApiClient {
-  ApiClient()
-      : _dio = Dio(
-    BaseOptions(
-      baseUrl: ApiConstants.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ),
-  ) {
+  ApiClient({
+    FirebaseAuth? firebaseAuth,
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+        _dio = Dio(
+          BaseOptions(
+            baseUrl: ApiConstants.baseUrl,
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 10),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          ),
+        ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          try {
+            final user = _firebaseAuth.currentUser;
+
+            if (user != null) {
+              final token = await user.getIdToken();
+
+              if (token != null && token.isNotEmpty) {
+                options.headers['Authorization'] = 'Bearer $token';
+              }
+            }
+
+            handler.next(options);
+          } catch (error) {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                error: error,
+              ),
+            );
+          }
+        },
+      ),
+    );
+
     _dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
@@ -25,6 +55,7 @@ class ApiClient {
   }
 
   final Dio _dio;
+  final FirebaseAuth _firebaseAuth;
 
   Future<Response<dynamic>> get(String path) async {
     return _dio.get(path);
@@ -56,5 +87,7 @@ class ApiClient {
 }
 
 final apiClientProvider = Provider<ApiClient>(
-      (ref) => ApiClient(),
+      (ref) => ApiClient(
+    firebaseAuth: FirebaseAuth.instance,
+  ),
 );
