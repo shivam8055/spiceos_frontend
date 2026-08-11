@@ -92,9 +92,7 @@ class AppSidebar extends ConsumerWidget {
                   child: ListTile(
                     leading: Icon(
                       item.icon,
-                      color: selected
-                          ? Colors.deepOrange
-                          : Colors.grey,
+                      color: selected ? Colors.deepOrange : Colors.grey,
                     ),
                     title: Text(item.title),
                     selected: selected,
@@ -116,20 +114,23 @@ class AppSidebar extends ConsumerWidget {
 
           Padding(
             padding: const EdgeInsets.all(12),
-            child: ListTile(
-              leading: const Icon(
-                Icons.logout_outlined,
-                color: Colors.grey,
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.logout_outlined,
+                  color: Colors.grey,
+                ),
+                title: const Text('Sign Out'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () async {
+                  await ref
+                      .read(authNotifierProvider.notifier)
+                      .signOut();
+                },
               ),
-              title: const Text('Sign Out'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              onTap: () async {
-                await ref
-                    .read(authNotifierProvider.notifier)
-                    .signOut();
-              },
             ),
           ),
         ],
