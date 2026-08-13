@@ -4,9 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/app_shell.dart';
 import '../models/inventory_api_item.dart';
 import '../providers/inventory_api_provider.dart';
+import '../widgets/add_inventory_item_dialog.dart';
 
 class InventoryScreen extends ConsumerWidget {
   const InventoryScreen({super.key});
+
+  Future<void> _showAddItem(BuildContext context) async {
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => const AddInventoryItemDialog(),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +29,10 @@ class InventoryScreen extends ConsumerWidget {
         ),
         data: (items) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(inventoryItemsProvider),
-          child: _InventoryContent(items: items),
+          child: _InventoryContent(
+            items: items,
+            onAddItem: () => _showAddItem(context),
+          ),
         ),
       ),
     );
@@ -29,9 +40,13 @@ class InventoryScreen extends ConsumerWidget {
 }
 
 class _InventoryContent extends StatelessWidget {
-  const _InventoryContent({required this.items});
+  const _InventoryContent({
+    required this.items,
+    required this.onAddItem,
+  });
 
   final List<InventoryApiItem> items;
+  final VoidCallback onAddItem;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +80,7 @@ class _InventoryContent extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: onAddItem,
                 icon: const Icon(Icons.add),
                 label: const Text('Add Item'),
               ),
