@@ -273,7 +273,9 @@ class _AdjustInventoryDialogState extends ConsumerState<_AdjustInventoryDialog> 
       content: SizedBox(
         width: 420,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Current stock: ${widget.item.quantity:g} ${widget.item.unit}'),
+          Text(
+  'Current stock: ${widget.item.quantity.toStringAsFixed(2)} ${widget.item.unit}',
+),
           const SizedBox(height: 18),
           SegmentedButton<bool>(
             segments: const [
@@ -318,14 +320,15 @@ class _MovementHistoryDialog extends StatelessWidget {
             if (movements.isEmpty) return const Center(child: Text('No stock movements recorded yet.'));
             return ListView.separated(
               itemCount: movements.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final movement = movements[index];
                 final isIn = movement.quantityDelta > 0;
                 final sign = isIn ? '+' : '';
                 return ListTile(
                   leading: CircleAvatar(radius: 18, child: Icon(isIn ? Icons.arrow_downward : Icons.arrow_upward, size: 18)),
-                  title: Text('${sign}${movement.quantityDelta:g} ${item.unit}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(
+  '$sign${movement.quantityDelta.toStringAsFixed(2)} ${item.unit}', style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(movement.reason),
                   trailing: Text(_formatDate(movement.createdAt)),
                 );
