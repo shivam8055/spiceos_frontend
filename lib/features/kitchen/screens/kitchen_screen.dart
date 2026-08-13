@@ -95,21 +95,30 @@ class _KitchenColumn extends ConsumerWidget {
                     order: order,
                     buttonText: buttonText,
                     onPressed: () async {
-                      final notifier = ref.read(ordersProvider.notifier);
-                      switch (order.status) {
-                        case OrderStatus.created:
-                          await notifier.startPreparing(order.id);
-                          break;
-                        case OrderStatus.preparing:
-                          await notifier.markReady(order.id);
-                          break;
-                        case OrderStatus.ready:
-                          await notifier.dispatch(order.id);
-                          break;
-                        case OrderStatus.outForDelivery:
-                        case OrderStatus.delivered:
-                        case OrderStatus.cancelled:
-                          break;
+                      try {
+                        final notifier = ref.read(ordersProvider.notifier);
+                        switch (order.status) {
+                          case OrderStatus.created:
+                            await notifier.startPreparing(order.id);
+                            break;
+                          case OrderStatus.preparing:
+                            await notifier.markReady(order.id);
+                            break;
+                          case OrderStatus.ready:
+                            await notifier.dispatch(order.id);
+                            break;
+                          case OrderStatus.outForDelivery:
+                          case OrderStatus.delivered:
+                          case OrderStatus.cancelled:
+                            return;
+                        }
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Unable to update order: $error'),
+                          ),
+                        );
                       }
                     },
                   );
