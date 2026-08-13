@@ -1,38 +1,43 @@
 class InventoryItem {
   final int id;
   final String name;
-  final String? sku;
-  final String unit;
+  final String category;
   final double quantity;
+  final String unit;
   final double reorderLevel;
-  final double costPerUnit;
-  final bool isActive;
+  final double costPrice;
 
   const InventoryItem({
     required this.id,
     required this.name,
-    required this.sku,
-    required this.unit,
+    required this.category,
     required this.quantity,
+    required this.unit,
     required this.reorderLevel,
-    required this.costPerUnit,
-    required this.isActive,
+    required this.costPrice,
   });
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
-      id: (json['id'] as num).toInt(),
+      id: json['id'] as int,
       name: json['name'] as String,
-      sku: json['sku'] as String?,
-      unit: json['unit'] as String? ?? 'unit',
-      quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
-      reorderLevel: (json['reorder_level'] as num?)?.toDouble() ?? 0,
-      costPerUnit: (json['cost_per_unit'] as num?)?.toDouble() ?? 0,
-      isActive: json['is_active'] as bool? ?? true,
+      category: json['category'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+      reorderLevel: (json['reorder_level'] as num).toDouble(),
+      costPrice: (json['cost_price'] as num).toDouble(),
     );
   }
 
-  bool get isLowStock => quantity <= reorderLevel;
-  bool get isOutOfStock => quantity <= 0;
-  double get stockValue => quantity * costPerUnit;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'quantity': quantity,
+      'unit': unit,
+      'reorder_level': reorderLevel,
+      'cost_price': costPrice,
+    };
+  }
 }
