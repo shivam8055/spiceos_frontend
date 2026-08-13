@@ -29,22 +29,23 @@ class OrderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              Expanded(
-                child: Text(
-                  order.orderNumber,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.orderNumber,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  OrderStatusChip(status: order.status),
+                ],
               ),
-
-              const SizedBox(width: 8),
-
-              OrderStatusChip(status: order.status),
 
               const SizedBox(height: 12),
 
@@ -64,7 +65,6 @@ class OrderCard extends StatelessWidget {
 
               Row(
                 children: [
-
                   Text(
                     "₹${order.totalAmount.toStringAsFixed(0)}",
                     style: const TextStyle(
@@ -72,12 +72,8 @@ class OrderCard extends StatelessWidget {
                       fontSize: 18,
                     ),
                   ),
-
                   const Spacer(),
-
-                  PaymentStatusChip(
-                    status: order.paymentStatus,
-                  ),
+                  PaymentStatusChip(status: order.paymentStatus),
                 ],
               ),
 
@@ -85,15 +81,12 @@ class OrderCard extends StatelessWidget {
 
               Row(
                 children: [
-
                   Icon(
                     Icons.storefront,
                     size: 18,
                     color: Colors.grey.shade600,
                   ),
-
                   const SizedBox(width: 8),
-
                   Expanded(
                     child: Text(
                       order.orderSource,
@@ -101,9 +94,7 @@ class OrderCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-
                   const SizedBox(width: 8),
-
                   const Icon(Icons.chevron_right),
                 ],
               ),
