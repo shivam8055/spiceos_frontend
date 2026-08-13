@@ -16,19 +16,13 @@ enum PaymentStatus {
 class Order {
   final String id;
   final String orderNumber;
-
   final String customerId;
   final String customerName;
-
   final String primaryItem;
-
   final DateTime createdAt;
-
   final OrderStatus status;
   final PaymentStatus paymentStatus;
-
   final double totalAmount;
-
   final String orderSource;
 
   const Order({
@@ -47,18 +41,54 @@ class Order {
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
       id: json['id'].toString(),
-      orderNumber: json['order_number'] ?? '',
-      customerId: json['customer_id'] ?? '',
-      customerName: json['customer_name'] ?? '',
-      primaryItem: json['primary_item'] ?? '',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      status: OrderStatus.created,
-      paymentStatus: PaymentStatus.paid,
+      orderNumber: json['order_number']?.toString() ?? '',
+      customerId: json['customer_id']?.toString() ?? '',
+      customerName: json['customer_name']?.toString() ?? '',
+      primaryItem: json['primary_item']?.toString() ?? '',
+      createdAt: _parseDateTime(json['created_at']),
+      status: _parseOrderStatus(json['status']),
+      paymentStatus: _parsePaymentStatus(json['payment_status']),
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
-      orderSource: json['order_source'] ?? 'Unknown',
+      orderSource: json['order_source']?.toString() ?? 'Unknown',
     );
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
+  static OrderStatus _parseOrderStatus(dynamic value) {
+    switch (value?.toString()) {
+      case 'preparing':
+        return OrderStatus.preparing;
+      case 'ready':
+        return OrderStatus.ready;
+      case 'outForDelivery':
+      case 'out_for_delivery':
+        return OrderStatus.outForDelivery;
+      case 'delivered':
+        return OrderStatus.delivered;
+      case 'cancelled':
+        return OrderStatus.cancelled;
+      case 'created':
+      default:
+        return OrderStatus.created;
+    }
+  }
+
+  static PaymentStatus _parsePaymentStatus(dynamic value) {
+    switch (value?.toString()) {
+      case 'paid':
+        return PaymentStatus.paid;
+      case 'refunded':
+        return PaymentStatus.refunded;
+      case 'pending':
+      default:
+        return PaymentStatus.pending;
+    }
   }
 
   Map<String, dynamic> toJson() {
