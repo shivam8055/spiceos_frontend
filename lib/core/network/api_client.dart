@@ -12,7 +12,7 @@ class ApiClient {
          BaseOptions(
            baseUrl: ApiConstants.baseUrl,
            connectTimeout: const Duration(seconds: 10),
-           receiveTimeout: const Duration(seconds: 10),
+           receiveTimeout: const Duration(seconds: 90),
            headers: const {
              'Content-Type': 'application/json',
              'Accept': 'application/json',
@@ -58,6 +58,9 @@ class ApiClient {
 
   Future<Response<dynamic>> post(String path, Object? body) =>
       _dio.post(path, data: body);
+
+  Future<Response<dynamic>> postMultipart(String path, FormData body) =>
+      _dio.post(path, data: body, options: Options(contentType: 'multipart/form-data'));
 
   Future<Response<dynamic>> patch(String path, Object? body) =>
       _dio.patch(path, data: body);
