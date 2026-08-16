@@ -29,10 +29,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     try {
       final response = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
       final restaurantId = response.data['restaurant_id'] as String;
-      final items = await ref.read(menuRepositoryProvider).list(
-        restaurantId: restaurantId,
-        branchId: _branch.text.trim(),
-      );
+      final items = await ref.read(menuRepositoryProvider).list(restaurantId: restaurantId, branchId: _branch.text.trim());
       if (!mounted) return;
       setState(() { _items = items; _loading = false; });
     } on DioException catch (e) {
@@ -51,74 +48,49 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
+  void initState() { super.initState(); _load(); }
   @override
   void dispose() { _branch.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
     return AppShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Menu Management', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-              SizedBox(height: 6),
-              Text('Manage your live menu by branch, category and availability.'),
-            ])),
-            SizedBox(width: 220, child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
-            const SizedBox(width: 12),
-            FilledButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
-          ]),
-          const SizedBox(height: 24),
-          if (_error != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: AppColors.error),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error))),
-                    if (_needsRestaurant)
-                      FilledButton.icon(
-                        onPressed: () => context.go('/settings'),
-                        icon: const Icon(Icons.storefront_outlined),
-                        label: const Text('Set Up Restaurant'),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Expanded(child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : Card(child: _items.isEmpty
-                  ? const Center(child: Text('No menu items yet. Add your first item from Restaurant Setup.'))
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: _items.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (_, index) {
-                        final item = _items[index];
-                        return ListTile(
-                          leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
-                          title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('${item.category}${item.description == null || item.description!.isEmpty ? '' : ' • ${item.description}'}'),
-                          trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                            Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Text(item.available ? 'Available' : 'Unavailable', style: TextStyle(color: item.available ? AppColors.success : AppColors.error, fontSize: 12)),
-                          ]),
-                        );
-                      },
-                    ))),
-        ],
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Menu Management', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+            SizedBox(height: 6),
+            Text('Manage your live menu by branch, category and availability.'),
+          ])),
+          OutlinedButton.icon(onPressed: () => context.push('/menu/import'), icon: const Icon(Icons.auto_awesome), label: const Text('Import with AI')),
+          const SizedBox(width: 12),
+          SizedBox(width: 180, child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
+          const SizedBox(width: 12),
+          FilledButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+        ]),
+        const SizedBox(height: 24),
+        if (_error != null)
+          Card(child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+            const Icon(Icons.info_outline, color: AppColors.error), const SizedBox(width: 12),
+            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error))),
+            if (_needsRestaurant) FilledButton.icon(onPressed: () => context.go('/settings'), icon: const Icon(Icons.storefront_outlined), label: const Text('Set Up Restaurant')),
+          ]))),
+        const SizedBox(height: 12),
+        Expanded(child: _loading ? const Center(child: CircularProgressIndicator()) : Card(child: _items.isEmpty
+            ? const Center(child: Text('No menu items yet. Import your existing menu or add your first item.'))
+            : ListView.separated(
+                padding: const EdgeInsets.all(8), itemCount: _items.length, separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, index) { final item = _items[index]; return ListTile(
+                  leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
+                  title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${item.category}${item.description == null || item.description!.isEmpty ? '' : ' • ${item.description}'}'),
+                  trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(item.available ? 'Available' : 'Unavailable', style: TextStyle(color: item.available ? AppColors.success : AppColors.error, fontSize: 12)),
+                  ]),
+                ); },
+              ))),
+      ],),
     );
   }
 }
