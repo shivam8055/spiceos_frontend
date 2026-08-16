@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/api_client.dart';
 import '../models/qr_menu.dart';
@@ -17,15 +18,7 @@ class QROrderingState {
   final QROrderStatus? status;
   final String? error;
 
-  const QROrderingState({
-    this.loading = true,
-    this.submitting = false,
-    this.menu,
-    this.cart = const [],
-    this.confirmation,
-    this.status,
-    this.error,
-  });
+  const QROrderingState({this.loading = true, this.submitting = false, this.menu, this.cart = const [], this.confirmation, this.status, this.error});
 
   double get cartTotal => cart.fold<double>(0, (sum, line) => sum + line.total);
   int get cartCount => cart.fold<int>(0, (sum, line) => sum + line.quantity);
@@ -39,13 +32,15 @@ class QROrderingState {
     QROrderStatus? status,
     String? error,
     bool clearError = false,
+    bool clearConfirmation = false,
+    bool clearStatus = false,
   }) => QROrderingState(
         loading: loading ?? this.loading,
         submitting: submitting ?? this.submitting,
         menu: menu ?? this.menu,
         cart: cart ?? this.cart,
-        confirmation: confirmation ?? this.confirmation,
-        status: status ?? this.status,
+        confirmation: clearConfirmation ? null : confirmation ?? this.confirmation,
+        status: clearStatus ? null : status ?? this.status,
         error: clearError ? null : error ?? this.error,
       );
 }
@@ -53,12 +48,15 @@ class QROrderingState {
 class QROrderingNotifier extends StateNotifier<QROrderingState> {
   QROrderingNotifier(this._repository, this.token) : super(const QROrderingState()) {
     loadMenu();
+    _restoreOrder();
   }
 
   final QROrderingRepository _repository;
   final String token;
   Timer? _statusTimer;
   String? _idempotencyKey;
+
+  String get _storagePrefix => 'spiceos_qr_${token.hashCode}';
 
   Future<void> loadMenu() async {
     state = state.copyWith(loading: true, clearError: true);
@@ -70,14 +68,36 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
     }
   }
 
+  Future<void> _restoreOrder() async {
+    final preferences = await SharedPreferences.getInstance();
+    final savedPublicToken = preferences.getString('$_storagePrefix.public_token');
+    if (savedPublicToken == null || savedPublicToken.isEmpty) return;
+    try {
+      final status = await _repository.getOrderStatus(savedPublicToken);
+      final confirmation = QROrderConfirmation(
+        orderId: -1,
+        orderNumber: status.orderNumber,
+        status: status.status,
+        total: status.total,
+        currency: status.currency,
+        tableName: status.tableName,
+        publicOrderToken: savedPublicToken,
+      );
+      state = state.copyWith(confirmation: confirmation, status: status);
+      _statusTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshStatus());
+    } catch (_) {
+      await preferences.remove('$_storagePrefix.public_token');
+      await preferences.remove('$_storagePrefix.idempotency_key');
+    }
+  }
+
   void addToCart(QRMenuItem item, {List<QRModifier> modifiers = const [], String note = ''}) {
-    if (!item.available) return;
-    final index = state.cart.indexWhere(
-      (line) => line.item.id == item.id &&
-          line.note == note &&
-          line.modifiers.map((e) => e.id).toSet().containsAll(modifiers.map((e) => e.id)) &&
-          modifiers.map((e) => e.id).toSet().containsAll(line.modifiers.map((e) => e.id)),
-    );
+    if (!item.available || state.confirmation != null) return;
+    final index = state.cart.indexWhere((line) =>
+        line.item.id == item.id &&
+        line.note == note &&
+        line.modifiers.map((e) => e.id).toSet().containsAll(modifiers.map((e) => e.id)) &&
+        modifiers.map((e) => e.id).toSet().containsAll(line.modifiers.map((e) => e.id)));
     final cart = [...state.cart];
     if (index >= 0) {
       cart[index] = cart[index].copyWith(quantity: cart[index].quantity + 1);
@@ -88,7 +108,7 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
   }
 
   void updateQuantity(int index, int quantity) {
-    if (index < 0 || index >= state.cart.length) return;
+    if (index < 0 || index >= state.cart.length || state.confirmation != null) return;
     final cart = [...state.cart];
     if (quantity <= 0) {
       cart.removeAt(index);
@@ -98,11 +118,11 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
     state = state.copyWith(cart: cart);
   }
 
-  void clearCart() => state = state.copyWith(cart: []);
-
   Future<void> submit({String? customerName, String? customerPhone}) async {
     if (state.cart.isEmpty || state.submitting || state.confirmation != null) return;
     _idempotencyKey ??= _newIdempotencyKey();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('$_storagePrefix.idempotency_key', _idempotencyKey!);
     state = state.copyWith(submitting: true, clearError: true);
     try {
       final confirmation = await _repository.createOrder(
@@ -112,6 +132,7 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
         customerName: customerName,
         customerPhone: customerPhone,
       );
+      await preferences.setString('$_storagePrefix.public_token', confirmation.publicOrderToken);
       state = state.copyWith(submitting: false, confirmation: confirmation);
       await refreshStatus();
       _statusTimer?.cancel();
@@ -127,12 +148,19 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
     try {
       final status = await _repository.getOrderStatus(confirmation.publicOrderToken);
       state = state.copyWith(status: status);
-      if ({'delivered', 'cancelled'}.contains(status.status)) {
-        _statusTimer?.cancel();
-      }
+      if ({'delivered', 'cancelled'}.contains(status.status)) _statusTimer?.cancel();
     } catch (_) {
-      // Keep the last known status; a transient polling failure should not disrupt the customer.
+      // Preserve the last known status during transient network failures.
     }
+  }
+
+  Future<void> startNewOrder() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove('$_storagePrefix.public_token');
+    await preferences.remove('$_storagePrefix.idempotency_key');
+    _idempotencyKey = null;
+    _statusTimer?.cancel();
+    state = state.copyWith(cart: [], clearConfirmation: true, clearStatus: true, clearError: true);
   }
 
   static String _newIdempotencyKey() {
@@ -148,9 +176,7 @@ class QROrderingNotifier extends StateNotifier<QROrderingState> {
   }
 }
 
-final qrOrderingRepositoryProvider = Provider<QROrderingRepository>(
-  (ref) => QROrderingRepository(ref.watch(apiClientProvider)),
-);
+final qrOrderingRepositoryProvider = Provider<QROrderingRepository>((ref) => QROrderingRepository(ref.watch(apiClientProvider)));
 
 final qrOrderingProvider = StateNotifierProvider.autoDispose.family<QROrderingNotifier, QROrderingState, String>(
   (ref, token) => QROrderingNotifier(ref.watch(qrOrderingRepositoryProvider), token),
