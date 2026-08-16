@@ -13,13 +13,38 @@ import '../features/orders/screens/orders_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
+const _staffRoles = {'owner', 'manager', 'staff'};
+const _managementRoles = {'owner', 'manager'};
+const _ownerRoles = {'owner'};
+
+bool _canAccess(String location, String role) {
+  if (location == '/settings') {
+    return _ownerRoles.contains(role);
+  }
+
+  if (location == '/reports' || location == '/delivery') {
+    return _managementRoles.contains(role);
+  }
+
+  if (location == '/orders' ||
+      location == '/orders/new' ||
+      location == '/customers' ||
+      location == '/inventory' ||
+      location == '/kitchen') {
+    return _staffRoles.contains(role);
+  }
+
+  return true;
+}
+
 GoRouter createRouter(WidgetRef ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
       final authState = ref.read(authNotifierProvider);
       final user = authState.asData?.value;
-      final loggingIn = state.matchedLocation == '/login';
+      final location = state.matchedLocation;
+      final loggingIn = location == '/login';
 
       if (authState.isLoading) {
         return null;
@@ -30,6 +55,10 @@ GoRouter createRouter(WidgetRef ref) {
       }
 
       if (user != null && loggingIn) {
+        return '/';
+      }
+
+      if (user != null && !_canAccess(location, user.role)) {
         return '/';
       }
 
