@@ -6,7 +6,7 @@ class MenuRepository {
   final ApiClient _api;
 
   Future<List<MenuItem>> list({required String restaurantId, required String branchId}) async {
-    final response = await _api.get('/admin/menu-items?restaurant_id=$restaurantId&branch_id=$branchId');
+    final response = await _api.get('/qr/admin/menu-items?restaurant_id=$restaurantId&branch_id=$branchId');
     final data = response.data;
     if (data is List) {
       return data.map((item) => MenuItem.fromJson(Map<String, dynamic>.from(item as Map))).toList();
