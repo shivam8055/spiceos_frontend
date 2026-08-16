@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
@@ -20,11 +22,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   bool _loading = false;
   String? _error;
   List<MenuItem> _items = const [];
+  bool _needsRestaurant = false;
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = true; _error = null; _needsRestaurant = false; });
     try {
-      // Restaurant-scoped endpoint lives under the QR Ordering router.
       final response = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
       final restaurantId = response.data['restaurant_id'] as String;
       final items = await ref.read(menuRepositoryProvider).list(
@@ -33,6 +35,15 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       );
       if (!mounted) return;
       setState(() { _items = items; _loading = false; });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      setState(() {
+        _loading = false;
+        _needsRestaurant = status == 409 || (detail?.toLowerCase().contains('not associated with a restaurant') ?? false);
+        _error = detail ?? 'Unable to load the restaurant menu.';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() { _loading = false; _error = e.toString(); });
@@ -65,7 +76,25 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             FilledButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
           ]),
           const SizedBox(height: 24),
-          if (_error != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(_error!, style: const TextStyle(color: AppColors.error)))),
+          if (_error != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: AppColors.error),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error))),
+                    if (_needsRestaurant)
+                      FilledButton.icon(
+                        onPressed: () => context.go('/settings'),
+                        icon: const Icon(Icons.storefront_outlined),
+                        label: const Text('Set Up Restaurant'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           const SizedBox(height: 12),
           Expanded(child: _loading
               ? const Center(child: CircularProgressIndicator())
