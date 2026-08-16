@@ -1,45 +1,43 @@
 class InventoryItem {
   final int id;
   final String name;
-  final String? sku;
+  final String category;
   final double quantity;
   final String unit;
   final double reorderLevel;
-  final double costPerUnit;
-  final bool isActive;
+  final double costPrice;
 
   const InventoryItem({
     required this.id,
     required this.name,
-    required this.sku,
+    required this.category,
     required this.quantity,
     required this.unit,
     required this.reorderLevel,
-    required this.costPerUnit,
-    required this.isActive,
+    required this.costPrice,
   });
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
       id: json['id'] as int,
       name: json['name'] as String,
-      sku: json['sku'] as String?,
+      category: json['category'] as String,
       quantity: (json['quantity'] as num).toDouble(),
       unit: json['unit'] as String,
       reorderLevel: (json['reorder_level'] as num).toDouble(),
-      costPerUnit: (json['cost_per_unit'] as num).toDouble(),
-      isActive: json['is_active'] as bool? ?? true,
+      costPrice: (json['cost_price'] as num).toDouble(),
     );
   }
 
-  Map<String, dynamic> toCreateJson() {
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
-      'sku': sku,
-      'unit': unit,
+      'category': category,
       'quantity': quantity,
+      'unit': unit,
       'reorder_level': reorderLevel,
-      'cost_per_unit': costPerUnit,
+      'cost_price': costPrice,
     };
   }
 }
