@@ -1,47 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:spicebox/features/auth/models/role_permissions.dart';
 
 void main() {
-  const staffRoles = {'owner', 'manager', 'staff'};
-  const managementRoles = {'owner', 'manager'};
-
-  bool canAccess(String location, String role) {
-    if (location == '/settings') {
-      return role == 'owner';
-    }
-    if (location == '/reports' || location == '/delivery') {
-      return managementRoles.contains(role);
-    }
-    if ({
-      '/orders',
-      '/orders/new',
-      '/customers',
-      '/inventory',
-      '/kitchen',
-    }.contains(location)) {
-      return staffRoles.contains(role);
-    }
-    return true;
-  }
-
   test('owner can access management and settings routes', () {
-    expect(canAccess('/settings', 'owner'), isTrue);
-    expect(canAccess('/reports', 'owner'), isTrue);
-    expect(canAccess('/delivery', 'owner'), isTrue);
+    expect(RolePermissions.canAccess('/settings', RolePermissions.owner), isTrue);
+    expect(RolePermissions.canAccess('/reports', RolePermissions.owner), isTrue);
+    expect(RolePermissions.canAccess('/delivery', RolePermissions.owner), isTrue);
   });
 
   test('manager can access operations but not settings', () {
-    expect(canAccess('/reports', 'manager'), isTrue);
-    expect(canAccess('/delivery', 'manager'), isTrue);
-    expect(canAccess('/orders', 'manager'), isTrue);
-    expect(canAccess('/settings', 'manager'), isFalse);
+    expect(RolePermissions.canAccess('/reports', RolePermissions.manager), isTrue);
+    expect(RolePermissions.canAccess('/delivery', RolePermissions.manager), isTrue);
+    expect(RolePermissions.canAccess('/orders', RolePermissions.manager), isTrue);
+    expect(RolePermissions.canAccess('/settings', RolePermissions.manager), isFalse);
   });
 
   test('staff can access operational routes but not management routes', () {
-    expect(canAccess('/orders', 'staff'), isTrue);
-    expect(canAccess('/inventory', 'staff'), isTrue);
-    expect(canAccess('/kitchen', 'staff'), isTrue);
-    expect(canAccess('/reports', 'staff'), isFalse);
-    expect(canAccess('/delivery', 'staff'), isFalse);
-    expect(canAccess('/settings', 'staff'), isFalse);
+    expect(RolePermissions.canAccess('/orders', RolePermissions.staff), isTrue);
+    expect(RolePermissions.canAccess('/inventory', RolePermissions.staff), isTrue);
+    expect(RolePermissions.canAccess('/kitchen', RolePermissions.staff), isTrue);
+    expect(RolePermissions.canAccess('/reports', RolePermissions.staff), isFalse);
+    expect(RolePermissions.canAccess('/delivery', RolePermissions.staff), isFalse);
+    expect(RolePermissions.canAccess('/settings', RolePermissions.staff), isFalse);
   });
 }
