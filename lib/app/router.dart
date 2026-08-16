@@ -12,6 +12,7 @@ import '../features/kitchen/screens/kitchen_screen.dart';
 import '../features/menu/screens/menu_screen.dart';
 import '../features/orders/screens/new_order_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
+import '../features/qr/screens/qr_tables_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
@@ -38,6 +39,7 @@ GoRouter createRouter(WidgetRef ref) {
       GoRoute(path: '/inventory', builder: (context, state) => const InventoryScreen()),
       GoRoute(path: '/kitchen', builder: (context, state) => const KitchenScreen()),
       GoRoute(path: '/menu', builder: (context, state) => const MenuScreen()),
+      GoRoute(path: '/qr-tables', builder: (context, state) => const QRTablesScreen()),
       GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
