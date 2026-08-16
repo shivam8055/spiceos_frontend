@@ -24,8 +24,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      // Restaurant-scoped endpoint is intentionally consumed through the authenticated API.
-      final response = await ref.read(apiClientProvider).get('/admin/restaurant');
+      // Restaurant-scoped endpoint lives under the QR Ordering router.
+      final response = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
       final restaurantId = response.data['restaurant_id'] as String;
       final items = await ref.read(menuRepositoryProvider).list(
         restaurantId: restaurantId,
