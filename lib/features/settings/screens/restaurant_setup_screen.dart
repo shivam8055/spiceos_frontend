@@ -1,1 +1,0 @@
-// Placeholder accidentally created during endpoint investigation. This file is intentionally empty until the existing Restaurant Setup implementation is located.
