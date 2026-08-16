@@ -13,6 +13,7 @@ import '../features/orders/screens/new_order_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/qr_ordering/screens/qr_ordering_screen.dart';
 
 GoRouter createRouter(WidgetRef ref) {
   return GoRouter(
@@ -22,67 +23,27 @@ GoRouter createRouter(WidgetRef ref) {
       final user = authState.asData?.value;
       final location = state.matchedLocation;
       final loggingIn = location == '/login';
+      final publicQR = location.startsWith('/order/');
 
-      if (authState.isLoading) {
-        return null;
-      }
-
-      if (user == null && !loggingIn) {
-        return '/login';
-      }
-
-      if (user != null && loggingIn) {
-        return '/';
-      }
-
-      if (user != null &&
-          !RolePermissions.canAccess(location, user.role)) {
-        return '/';
-      }
-
+      if (publicQR) return null;
+      if (authState.isLoading) return null;
+      if (user == null && !loggingIn) return '/login';
+      if (user != null && loggingIn) return '/';
+      if (user != null && !RolePermissions.canAccess(location, user.role)) return '/';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const DashboardScreen(),
-      ),
-      GoRoute(
-        path: '/orders',
-        builder: (context, state) => const OrdersScreen(),
-      ),
-      GoRoute(
-        path: '/orders/new',
-        builder: (context, state) => const NewOrderScreen(),
-      ),
-      GoRoute(
-        path: '/customers',
-        builder: (context, state) => const CustomersScreen(),
-      ),
-      GoRoute(
-        path: '/inventory',
-        builder: (context, state) => const InventoryScreen(),
-      ),
-      GoRoute(
-        path: '/kitchen',
-        builder: (context, state) => const KitchenScreen(),
-      ),
-      GoRoute(
-        path: '/delivery',
-        builder: (context, state) => const DeliveryScreen(),
-      ),
-      GoRoute(
-        path: '/reports',
-        builder: (context, state) => const ReportsScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/order/:token', builder: (context, state) => QROrderingScreen(token: state.pathParameters['token']!)),
+      GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
+      GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
+      GoRoute(path: '/orders/new', builder: (context, state) => const NewOrderScreen()),
+      GoRoute(path: '/customers', builder: (context, state) => const CustomersScreen()),
+      GoRoute(path: '/inventory', builder: (context, state) => const InventoryScreen()),
+      GoRoute(path: '/kitchen', builder: (context, state) => const KitchenScreen()),
+      GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
+      GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
+      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
     ],
   );
 }
