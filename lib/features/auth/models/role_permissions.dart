@@ -10,7 +10,7 @@ class RolePermissions {
   static const ownerRoles = {owner};
 
   static bool canAccess(String location, String role) {
-    if (location == '/settings') {
+    if (location == '/settings' || location == '/qr-tables') {
       return ownerRoles.contains(role);
     }
 
@@ -22,7 +22,8 @@ class RolePermissions {
         location == '/orders/new' ||
         location == '/customers' ||
         location == '/inventory' ||
-        location == '/kitchen') {
+        location == '/kitchen' ||
+        location == '/menu') {
       return staffRoles.contains(role);
     }
 
