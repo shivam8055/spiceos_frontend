@@ -6,7 +6,6 @@ import '../providers/qr_ordering_provider.dart';
 
 class QROrderingScreen extends ConsumerStatefulWidget {
   const QROrderingScreen({super.key, required this.token});
-
   final String token;
 
   @override
@@ -30,9 +29,7 @@ class _QROrderingScreenState extends ConsumerState<QROrderingScreen> {
     final state = ref.watch(qrOrderingProvider(widget.token));
     final notifier = ref.read(qrOrderingProvider(widget.token).notifier);
 
-    if (state.confirmation != null) {
-      return _ConfirmationView(state: state, onRefresh: notifier.refreshStatus);
-    }
+    if (state.confirmation != null) return _ConfirmationView(state: state, onRefresh: notifier.refreshStatus);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -61,16 +58,13 @@ class _QROrderingScreenState extends ConsumerState<QROrderingScreen> {
               child: FilledButton(
                 onPressed: () => _showCart(context, state, notifier),
                 style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('${state.cartCount} ${state.cartCount == 1 ? 'item' : 'items'}'),
-                    const SizedBox(width: 12),
-                    Text('₹${state.cartTotal.toStringAsFixed(0)}'),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 18),
-                  ],
-                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text('${state.cartCount} ${state.cartCount == 1 ? 'item' : 'items'}'),
+                  const SizedBox(width: 12),
+                  Text('₹${state.cartTotal.toStringAsFixed(0)}'),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 18),
+                ]),
               ),
             ),
     );
@@ -87,48 +81,37 @@ class _QROrderingScreenState extends ConsumerState<QROrderingScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final availableModifiers = item.modifiers.where((modifier) => modifier.available).toList();
-          return Padding(
-            padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Text('₹${item.price.toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 18),
-                ...availableModifiers.map(
-                  (modifier) => CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: selected.any((selectedModifier) => selectedModifier.id == modifier.id),
-                    title: Text(modifier.name),
-                    subtitle: Text(modifier.priceDelta >= 0 ? '+₹${modifier.priceDelta.toStringAsFixed(0)}' : '-₹${modifier.priceDelta.abs().toStringAsFixed(0)}'),
-                    onChanged: (value) => setSheetState(() {
-                      if (value == true) {
-                        selected.add(modifier);
-                      } else {
-                        selected.removeWhere((entry) => entry.id == modifier.id);
-                      }
-                    }),
-                  ),
-                ),
-                TextField(controller: noteController, maxLength: 500, decoration: const InputDecoration(labelText: 'Special note (optional)', prefixIcon: Icon(Icons.notes_outlined))),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(context, _ItemSelection(modifiers: List.of(selected), note: noteController.text)),
-                    child: const Text('Add to cart'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (context) => StatefulBuilder(builder: (context, setSheetState) {
+        final availableModifiers = item.modifiers.where((modifier) => modifier.available).toList();
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(item.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text('₹${item.price.toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 18),
+            ...availableModifiers.map((modifier) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: selected.any((entry) => entry.id == modifier.id),
+                  title: Text(modifier.name),
+                  subtitle: Text(modifier.priceDelta >= 0 ? '+₹${modifier.priceDelta.toStringAsFixed(0)}' : '-₹${modifier.priceDelta.abs().toStringAsFixed(0)}'),
+                  onChanged: (value) => setSheetState(() {
+                    if (value == true) {
+                      selected.add(modifier);
+                    } else {
+                      selected.removeWhere((entry) => entry.id == modifier.id);
+                    }
+                  }),
+                )),
+            TextField(controller: noteController, maxLength: 500, decoration: const InputDecoration(labelText: 'Special note (optional)', prefixIcon: Icon(Icons.notes_outlined))),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: FilledButton(
+              onPressed: () => Navigator.pop(context, _ItemSelection(modifiers: List.of(selected), note: noteController.text)),
+              child: const Text('Add to cart'),
+            )),
+          ]),
+        );
+      }),
     );
     noteController.dispose();
     if (result != null) notifier.addToCart(item, modifiers: result.modifiers, note: result.note);
@@ -139,12 +122,7 @@ class _QROrderingScreenState extends ConsumerState<QROrderingScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _CartSheet(
-        state: state,
-        notifier: notifier,
-        nameController: _nameController,
-        phoneController: _phoneController,
-      ),
+      builder: (context) => _CartSheet(state: state, notifier: notifier, nameController: _nameController, phoneController: _phoneController),
     );
   }
 }
@@ -169,50 +147,45 @@ class _MenuView extends StatelessWidget {
     final category = selectedCategory ?? (menu.categories.isNotEmpty ? menu.categories.first : null);
     final items = category == null ? menu.items : menu.items.where((item) => item.category == category).toList();
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(width: 42, height: 42, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.restaurant_rounded, color: Colors.white)),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('SpiceOS', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  Text(menu.tableName, style: Theme.of(context).textTheme.bodySmall),
-                ])),
-                if (state.cart.isNotEmpty) IconButton(onPressed: onOpenCart, icon: Badge(label: Text('${state.cartCount}'), child: const Icon(Icons.shopping_bag_outlined))),
-              ]),
-              const SizedBox(height: 22),
-              Text('Order at your table', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 5),
-              Text('Freshly prepared. Delivered to ${menu.tableName}.', style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 18),
-              if (menu.categories.isNotEmpty)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: menu.categories.map((categoryName) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(label: Text(categoryName), selected: categoryName == category, onSelected: (_) => onCategoryChanged(categoryName)),
-                  )).toList()),
-                ),
-            ]),
+    return CustomScrollView(slivers: [
+      SliverToBoxAdapter(child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 42, height: 42, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(13)), child: const Icon(Icons.restaurant_rounded, color: Colors.white)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('SpiceOS', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              Text(menu.tableName, style: Theme.of(context).textTheme.bodySmall),
+            ])),
+            if (state.cart.isNotEmpty) IconButton(onPressed: onOpenCart, icon: Badge(label: Text('${state.cartCount}'), child: const Icon(Icons.shopping_bag_outlined))),
+          ]),
+          const SizedBox(height: 22),
+          Text('Order at your table', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 5),
+          Text('Freshly prepared. Delivered to ${menu.tableName}.', style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 18),
+          if (menu.categories.isNotEmpty) SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: menu.categories.map((name) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(label: Text(name), selected: name == category, onSelected: (_) => onCategoryChanged(name)),
+            )).toList()),
+          ),
+        ]),
+      )),
+      if (items.isEmpty)
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(48), child: Center(child: Text('No items available right now.'))))
+      else
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+          sliver: SliverList.separated(
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) => _MenuItemCard(item: items[index], onAdd: onAdd),
           ),
         ),
-        if (items.isEmpty)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(48), child: Center(child: Text('No items available right now.'))))
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
-            sliver: SliverList.separated(
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _MenuItemCard(item: items[index], onAdd: onAdd),
-            ),
-          ),
-      ],
-    );
+    ]);
   }
 }
 
@@ -222,33 +195,27 @@ class _MenuItemCard extends StatelessWidget {
   final ValueChanged<QRMenuItem> onAdd;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(item.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w750)),
-            if (item.description?.isNotEmpty == true) ...[
-              const SizedBox(height: 5),
-              Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-            ],
-            const SizedBox(height: 10),
-            Text('₹${item.price.toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-          ])),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: item.available ? () => onAdd(item) : null,
-            icon: Icon(item.available ? Icons.add : Icons.remove_circle_outline, size: 18),
-            label: Text(item.available ? 'Add' : 'Unavailable'),
-          ),
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(item.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              if (item.description?.isNotEmpty == true) ...[
+                const SizedBox(height: 5),
+                Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+              ],
+              const SizedBox(height: 10),
+              Text('₹${item.price.toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            ])),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(onPressed: item.available ? () => onAdd(item) : null, icon: Icon(item.available ? Icons.add : Icons.remove_circle_outline, size: 18), label: Text(item.available ? 'Add' : 'Unavailable')),
+          ]),
+        ),
+      );
 }
 
 class _CartSheet extends StatelessWidget {
@@ -259,35 +226,31 @@ class _CartSheet extends StatelessWidget {
   final TextEditingController phoneController;
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
+  Widget build(BuildContext context) => SafeArea(child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Your order', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text('Review before sending to the kitchen.'),
+          const Text('Review before sending to the kitchen.'),
           const SizedBox(height: 16),
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: state.cart.length,
-              separatorBuilder: (_, _) => const Divider(height: 18),
-              itemBuilder: (context, index) {
-                final line = state.cart[index];
-                return Row(children: [
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(line.item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    if (line.modifiers.isNotEmpty) Text(line.modifiers.map((modifier) => modifier.name).join(', '), style: Theme.of(context).textTheme.bodySmall),
-                    Text('₹${line.total.toStringAsFixed(0)}', style: Theme.of(context).textTheme.bodyMedium),
-                  ])),
-                  IconButton(onPressed: () => notifier.updateQuantity(index, line.quantity - 1), icon: const Icon(Icons.remove_circle_outline)),
-                  Text('${line.quantity}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                  IconButton(onPressed: () => notifier.updateQuantity(index, line.quantity + 1), icon: const Icon(Icons.add_circle_outline)),
-                ]);
-              },
-            ),
-          ),
+          Flexible(child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: state.cart.length,
+            separatorBuilder: (_, _) => const Divider(height: 18),
+            itemBuilder: (context, index) {
+              final line = state.cart[index];
+              return Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(line.item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  if (line.modifiers.isNotEmpty) Text(line.modifiers.map((modifier) => modifier.name).join(', '), style: Theme.of(context).textTheme.bodySmall),
+                  Text('₹${line.total.toStringAsFixed(0)}', style: Theme.of(context).textTheme.bodyMedium),
+                ])),
+                IconButton(onPressed: () => notifier.updateQuantity(index, line.quantity - 1), icon: const Icon(Icons.remove_circle_outline)),
+                Text('${line.quantity}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                IconButton(onPressed: () => notifier.updateQuantity(index, line.quantity + 1), icon: const Icon(Icons.add_circle_outline)),
+              ]);
+            },
+          )),
           const SizedBox(height: 10),
           TextField(controller: nameController, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Your name (optional)', prefixIcon: Icon(Icons.person_outline))),
           const SizedBox(height: 10),
@@ -303,22 +266,16 @@ class _CartSheet extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           SizedBox(width: double.infinity, child: FilledButton(
-            onPressed: state.submitting || state.cart.isEmpty
-                ? null
-                : () async {
-                    await notifier.submit(customerName: nameController.text, customerPhone: phoneController.text);
-                    if (context.mounted && refMounted(context)) Navigator.of(context).pop();
-                  },
+            onPressed: state.submitting || state.cart.isEmpty ? null : () async {
+              await notifier.submit(customerName: nameController.text, customerPhone: phoneController.text);
+              if (context.mounted) Navigator.of(context).pop();
+            },
             style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
             child: state.submitting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Place order'),
           )),
         ]),
-      ),
-    );
-  }
+      ));
 }
-
-bool refMounted(BuildContext context) => context.mounted;
 
 class _ConfirmationView extends StatelessWidget {
   const _ConfirmationView({required this.state, required this.onRefresh});
@@ -330,36 +287,29 @@ class _ConfirmationView extends StatelessWidget {
     final status = state.status?.status ?? state.confirmation!.status;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(children: [
-                const SizedBox(height: 36),
-                Container(width: 76, height: 76, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), shape: BoxShape.circle), child: const Icon(Icons.check_rounded, size: 44, color: Colors.green)),
-                const SizedBox(height: 22),
-                Text('Order received', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                Text('Order ${state.confirmation!.orderNumber} is now in the SpiceOS kitchen.', textAlign: TextAlign.center),
-                const SizedBox(height: 28),
-                Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
-                  _StatusRow(label: 'Table', value: state.confirmation!.tableName),
-                  const Divider(height: 24),
-                  _StatusRow(label: 'Status', value: _statusLabel(status)),
-                  const Divider(height: 24),
-                  _StatusRow(label: 'Total', value: '₹${state.confirmation!.total.toStringAsFixed(0)}'),
-                ]))),
-                const SizedBox(height: 18),
-                Text('We will keep this screen updated automatically.', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
-                const SizedBox(height: 18),
-                OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh status')),
-              ]),
-            ),
-          ),
-        ),
-      ),
+      body: SafeArea(child: Center(child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Column(children: [
+          const SizedBox(height: 36),
+          Container(width: 76, height: 76, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), shape: BoxShape.circle), child: const Icon(Icons.check_rounded, size: 44, color: Colors.green)),
+          const SizedBox(height: 22),
+          Text('Order received', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text('Order ${state.confirmation!.orderNumber} is now in the SpiceOS kitchen.', textAlign: TextAlign.center),
+          const SizedBox(height: 28),
+          Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
+            _StatusRow(label: 'Table', value: state.confirmation!.tableName),
+            const Divider(height: 24),
+            _StatusRow(label: 'Status', value: _statusLabel(status)),
+            const Divider(height: 24),
+            _StatusRow(label: 'Total', value: '₹${state.confirmation!.total.toStringAsFixed(0)}'),
+          ]))),
+          const SizedBox(height: 18),
+          Text('We will keep this screen updated automatically.', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh status')),
+        ])),
+      ))),
     );
   }
 
