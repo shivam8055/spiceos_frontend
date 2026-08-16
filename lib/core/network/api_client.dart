@@ -32,12 +32,23 @@ class ApiClient {
             }
             handler.next(options);
           } catch (error) {
-            handler.reject(DioException(requestOptions: options, error: error));
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                error: error,
+              ),
+            );
           }
         },
       ),
     );
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ),
+    );
   }
 
   final Dio _dio;
@@ -45,16 +56,30 @@ class ApiClient {
 
   Future<Response<dynamic>> get(String path) => _dio.get(path);
 
-  Future<Response<dynamic>> post(String path, Object? body) => _dio.post(path, data: body);
+  Future<Response<dynamic>> post(String path, Object? body) =>
+      _dio.post(path, data: body);
 
-  Future<Response<dynamic>> postWithHeaders(String path, Object? body, {Map<String, dynamic>? headers}) =>
-      _dio.post(path, data: body, options: Options(headers: headers));
+  Future<Response<dynamic>> postWithHeaders(
+    String path,
+    Object? body, {
+    Map<String, dynamic>? headers,
+  }) => _dio.post(
+        path,
+        data: body,
+        options: Options(headers: headers),
+      );
 
-  Future<Response<dynamic>> patch(String path, Object? body) => _dio.patch(path, data: body);
+  Future<Response<dynamic>> patch(String path, Object? body) =>
+      _dio.patch(path, data: body);
 
-  Future<Response<dynamic>> put(String path, Object? body) => _dio.put(path, data: body);
+  Future<Response<dynamic>> put(String path, Object? body) =>
+      _dio.put(path, data: body);
 
   Future<Response<dynamic>> delete(String path) => _dio.delete(path);
 }
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(firebaseAuth: FirebaseAuth.instance));
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => ApiClient(
+    firebaseAuth: FirebaseAuth.instance,
+  ),
+);
