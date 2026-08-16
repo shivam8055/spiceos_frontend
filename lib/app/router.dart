@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/models/role_permissions.dart';
 import '../features/auth/providers/auth_notifier.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/customers/screens/customers_screen.dart';
@@ -12,30 +13,6 @@ import '../features/orders/screens/new_order_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
-
-const _staffRoles = {'owner', 'manager', 'staff'};
-const _managementRoles = {'owner', 'manager'};
-const _ownerRoles = {'owner'};
-
-bool _canAccess(String location, String role) {
-  if (location == '/settings') {
-    return _ownerRoles.contains(role);
-  }
-
-  if (location == '/reports' || location == '/delivery') {
-    return _managementRoles.contains(role);
-  }
-
-  if (location == '/orders' ||
-      location == '/orders/new' ||
-      location == '/customers' ||
-      location == '/inventory' ||
-      location == '/kitchen') {
-    return _staffRoles.contains(role);
-  }
-
-  return true;
-}
 
 GoRouter createRouter(WidgetRef ref) {
   return GoRouter(
@@ -58,7 +35,8 @@ GoRouter createRouter(WidgetRef ref) {
         return '/';
       }
 
-      if (user != null && !_canAccess(location, user.role)) {
+      if (user != null &&
+          !RolePermissions.canAccess(location, user.role)) {
         return '/';
       }
 
