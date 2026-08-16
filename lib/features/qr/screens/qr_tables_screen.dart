@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/network/api_client.dart';
@@ -25,15 +27,29 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
   bool _saving = false;
   String? _restaurantId;
   String? _error;
+  bool _needsRestaurant = false;
 
   Future<void> _loadRestaurant() async {
     try {
       final response = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
       if (!mounted) return;
-      setState(() => _restaurantId = response.data['restaurant_id'] as String);
+      setState(() {
+        _restaurantId = response.data['restaurant_id'] as String;
+        _error = null;
+        _needsRestaurant = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      setState(() {
+        _restaurantId = null;
+        _needsRestaurant = status == 409 || (detail?.toLowerCase().contains('not associated with a restaurant') ?? false);
+        _error = detail ?? 'Unable to load the restaurant.';
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() { _restaurantId = null; _error = e.toString(); });
     }
   }
 
@@ -55,6 +71,10 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
       );
       if (!mounted) return;
       setState(() { _created = table; _saving = false; });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      setState(() { _saving = false; _error = detail ?? 'Unable to generate QR.'; });
     } catch (e) {
       if (!mounted) return;
       setState(() { _saving = false; _error = e.toString(); });
@@ -78,6 +98,34 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
           const SizedBox(height: 6),
           const Text('Create secure restaurant-owned QR codes for each table.'),
           const SizedBox(height: 24),
+          if (_needsRestaurant)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront_outlined, size: 42),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Restaurant setup required', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                          SizedBox(height: 6),
+                          Text('Create or connect your restaurant before generating table QR codes. Your QR codes will then belong to that restaurant.'),
+                        ],
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => context.go('/settings'),
+                      icon: Icon(Icons.add_business_outlined),
+                      label: Text('Set Up Restaurant'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_needsRestaurant) const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -95,7 +143,7 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
                 SizedBox(width: 260, child: TextField(controller: _session, decoration: const InputDecoration(labelText: 'Session ID'))),
                 const SizedBox(height: 18),
                 FilledButton.icon(onPressed: _saving || _restaurantId == null ? null : _create, icon: const Icon(Icons.qr_code_2), label: Text(_saving ? 'Creating…' : 'Generate QR')),
-                if (_error != null) ...[
+                if (_error != null && !_needsRestaurant) ...[
                   const SizedBox(height: 12),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 ],
