@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/models/role_permissions.dart';
 import '../features/auth/providers/auth_notifier.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/customers/screens/customers_screen.dart';
@@ -19,7 +20,8 @@ GoRouter createRouter(WidgetRef ref) {
     redirect: (context, state) {
       final authState = ref.read(authNotifierProvider);
       final user = authState.asData?.value;
-      final loggingIn = state.matchedLocation == '/login';
+      final location = state.matchedLocation;
+      final loggingIn = location == '/login';
 
       if (authState.isLoading) {
         return null;
@@ -30,6 +32,11 @@ GoRouter createRouter(WidgetRef ref) {
       }
 
       if (user != null && loggingIn) {
+        return '/';
+      }
+
+      if (user != null &&
+          !RolePermissions.canAccess(location, user.role)) {
         return '/';
       }
 
