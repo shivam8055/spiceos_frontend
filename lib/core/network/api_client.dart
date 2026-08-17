@@ -59,14 +59,23 @@ class ApiClient {
   Future<Response<dynamic>> post(String path, Object? body) =>
       _dio.post(path, data: body);
 
+  Future<Response<dynamic>> postWithHeaders(
+    String path,
+    Object? body, {
+    Map<String, dynamic>? headers,
+  }) =>
+      _dio.post(
+        path,
+        data: body,
+        options: Options(headers: headers),
+      );
+
   Future<Response<dynamic>> postMultipart(String path, FormData body) =>
       _dio.post(path, data: body, options: Options(contentType: 'multipart/form-data'));
 
-  Future<Response<dynamic>> patch(String path, Object? body) =>
-      _dio.patch(path, data: body);
+  Future<Response<dynamic>> patch(String path, Object? body) => _dio.patch(path, data: body);
 
-  Future<Response<dynamic>> put(String path, Object? body) =>
-      _dio.put(path, data: body);
+  Future<Response<dynamic>> put(String path, Object? body) => _dio.put(path, data: body);
 
   Future<Response<dynamic>> delete(String path) => _dio.delete(path);
 }
