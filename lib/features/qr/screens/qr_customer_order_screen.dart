@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../services/payment_checkout.dart';
 
 class QRCustomerOrderScreen extends ConsumerStatefulWidget {
   const QRCustomerOrderScreen({super.key, required this.token});
@@ -22,11 +23,13 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
   final Map<int, int> _cart = {};
   bool _loading = true;
   bool _placingOrder = false;
+  bool _paying = false;
   bool _loadingStatus = false;
   String? _error;
   String? _orderNumber;
   String? _publicOrderToken;
   String? _orderStatus;
+  String? _paymentStatus;
   Timer? _statusTimer;
   String _selectedCategory = 'All';
 
@@ -47,14 +50,12 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
       _loading = true;
       _error = null;
     });
-
     try {
       final response = await ref.read(apiClientProvider).get('/qr/public/qr/${widget.token}/menu');
       final data = Map<String, dynamic>.from(response.data as Map);
       final items = (data['items'] as List? ?? const [])
           .map((item) => _CustomerMenuItem.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList();
-
       if (!mounted) return;
       setState(() {
         _context = Map<String, dynamic>.from(data['context'] as Map? ?? const {});
@@ -79,13 +80,12 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
   String _dioMessage(DioException e) {
     final data = e.response?.data;
     if (data is Map && data['detail'] != null) return data['detail'].toString();
-    return 'Unable to load this menu right now.';
+    return 'Something went wrong. Please try again.';
   }
 
-  List<_CustomerMenuItem> get _visibleItems {
-    if (_selectedCategory == 'All') return _items;
-    return _items.where((item) => item.category == _selectedCategory).toList();
-  }
+  List<_CustomerMenuItem> get _visibleItems => _selectedCategory == 'All'
+      ? _items
+      : _items.where((item) => item.category == _selectedCategory).toList();
 
   List<String> get _categories {
     final values = _items.map((item) => item.category).where((value) => value.isNotEmpty).toSet().toList();
@@ -93,7 +93,6 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
   }
 
   int get _cartCount => _cart.values.fold(0, (sum, value) => sum + value);
-
   double get _cartTotal => _items.fold(0, (sum, item) => sum + item.price * (_cart[item.id] ?? 0));
 
   void _changeQuantity(_CustomerMenuItem item, int delta) {
@@ -109,47 +108,34 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
 
   Future<void> _openCart() async {
     if (_cart.isEmpty) return;
-
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
-
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final cartItems = _items.where((item) => _cart.containsKey(item.id)).toList();
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 18,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text('Your order', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-                          ),
-                          IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close)),
-                        ],
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final cartItems = _items.where((item) => _cart.containsKey(item.id)).toList();
+          return Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 18, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [
+                      const Expanded(child: Text('Your order', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700))),
+                      IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close)),
+                    ]),
+                    if (_context?['table_name'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text('Table ${_context!['table_name']}', style: TextStyle(color: Colors.grey.shade700)),
                       ),
-                      if (_context?['table_name'] != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text('Table ${_context!['table_name']}', style: TextStyle(color: Colors.grey.shade700)),
-                        ),
-                      ...cartItems.map(
-                        (item) => ListTile(
+                    ...cartItems.map((item) => ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text('₹${item.price.toStringAsFixed(0)} each'),
@@ -158,83 +144,58 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                             children: [
                               IconButton(onPressed: () { _changeQuantity(item, -1); setSheetState(() {}); }, icon: const Icon(Icons.remove_circle_outline)),
                               Text('${_cart[item.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                              IconButton(onPressed: () { _changeQuantity(item, 1); setSheetState(() {}); }, icon: const Icon(Icons.add_circle_outline)),
+                              IconButton(onPressed: item.available ? () { _changeQuantity(item, 1); setSheetState(() {}); } : null, icon: const Icon(Icons.add_circle_outline)),
                             ],
                           ),
-                        ),
+                        )),
+                    const SizedBox(height: 10),
+                    TextField(controller: nameController, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Name (optional)', border: OutlineInputBorder())),
+                    const SizedBox(height: 10),
+                    TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone (optional)', border: OutlineInputBorder())),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      const Expanded(child: Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+                      Text('₹${_cartTotal.toStringAsFixed(0)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                    ]),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _placingOrder || _cart.isEmpty ? null : () async {
+                          await _placeOrder(
+                            nameController.text.trim().isEmpty ? null : nameController.text.trim(),
+                            phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                          );
+                          if (mounted && _orderNumber != null) Navigator.pop(sheetContext);
+                        },
+                        icon: const Icon(Icons.receipt_long),
+                        label: Text(_placingOrder ? 'Placing order…' : 'Place order · ₹${_cartTotal.toStringAsFixed(0)}'),
                       ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: nameController,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(labelText: 'Name (optional)', border: OutlineInputBorder()),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(labelText: 'Phone (optional)', border: OutlineInputBorder()),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Expanded(child: Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
-                          Text('₹${_cartTotal.toStringAsFixed(0)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _placingOrder || _cart.isEmpty
-                              ? null
-                              : () async {
-                                  await _placeOrder(
-                                    nameController.text.trim().isEmpty ? null : nameController.text.trim(),
-                                    phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
-                                  );
-                                  if (mounted && _orderNumber != null) Navigator.pop(sheetContext);
-                                },
-                          icon: const Icon(Icons.receipt_long),
-                          label: Text(_placingOrder ? 'Placing order…' : 'Place order · ₹${_cartTotal.toStringAsFixed(0)}'),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
-
     nameController.dispose();
     phoneController.dispose();
   }
 
   Future<void> _placeOrder(String? name, String? phone) async {
     setState(() => _placingOrder = true);
-
-    final items = _cart.entries
-        .map((entry) => {
-              'menu_item_id': entry.key,
-              'quantity': entry.value,
-              'modifier_ids': <String>[],
-            })
-        .toList();
-
+    final items = _cart.entries.map((entry) => {
+          'menu_item_id': entry.key,
+          'quantity': entry.value,
+          'modifier_ids': <String>[],
+        }).toList();
     try {
       final response = await ref.read(apiClientProvider).postWithHeaders(
         '/qr/public/qr/${widget.token}/orders',
-        {
-          'items': items,
-          'customer_name': name,
-          'customer_phone': phone,
-        },
-        headers: {
-          'Idempotency-Key': 'qr-${DateTime.now().microsecondsSinceEpoch}',
-        },
+        {'items': items, 'customer_name': name, 'customer_phone': phone},
+        headers: {'Idempotency-Key': 'qr-${DateTime.now().microsecondsSinceEpoch}'},
       );
       final data = Map<String, dynamic>.from(response.data as Map);
       if (!mounted) return;
@@ -242,6 +203,7 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
         _orderNumber = data['order_number']?.toString();
         _publicOrderToken = data['public_order_token']?.toString();
         _orderStatus = data['status']?.toString() ?? 'created';
+        _paymentStatus = 'pending';
         _cart.clear();
         _placingOrder = false;
       });
@@ -272,93 +234,105 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
       final response = await ref.read(apiClientProvider).get('/qr/public/orders/$publicToken');
       final data = Map<String, dynamic>.from(response.data as Map);
       if (!mounted) return;
-      final status = data['status']?.toString() ?? 'created';
       setState(() {
-        _orderStatus = status;
+        _orderStatus = data['status']?.toString() ?? 'created';
+        _paymentStatus = data['payment_status']?.toString() ?? 'pending';
       });
-      if (status == 'delivered' || status == 'cancelled') {
-        _statusTimer?.cancel();
-      }
-    } on DioException catch (_) {
-      // Keep the current status visible and retry on the next polling interval.
+      if (_orderStatus == 'delivered' || _orderStatus == 'cancelled') _statusTimer?.cancel();
     } catch (_) {
-      // Keep the current status visible and retry on the next polling interval.
+      // Keep the current state and retry on the next interval.
     } finally {
       _loadingStatus = false;
     }
   }
 
+  Future<void> _payNow() async {
+    final publicToken = _publicOrderToken;
+    if (publicToken == null || _paying) return;
+    setState(() => _paying = true);
+    try {
+      final response = await ref.read(apiClientProvider).post('/qr/public/orders/$publicToken/payment');
+      final payment = Map<String, dynamic>.from(response.data as Map);
+      final checkout = PaymentCheckout();
+      final result = await checkout.open(
+        keyId: payment['key_id'].toString(),
+        amount: payment['amount_paise'].toString(),
+        currency: payment['currency'].toString(),
+        orderId: payment['provider_order_id'].toString(),
+        name: _context?['restaurant_name']?.toString() ?? 'SpiceOS',
+      );
+      if (result == null) return;
+      final providerOrderId = result['razorpay_order_id']?.toString();
+      final providerPaymentId = result['razorpay_payment_id']?.toString();
+      final signature = result['razorpay_signature']?.toString();
+      if (providerOrderId == null || providerPaymentId == null || signature == null) {
+        throw StateError('Payment response was incomplete.');
+      }
+      await ref.read(apiClientProvider).post('/qr/public/orders/$publicToken/payment/verify', {
+        'provider_order_id': providerOrderId,
+        'provider_payment_id': providerPaymentId,
+        'signature': signature,
+      });
+      await _loadOrderStatus();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment verified. Waiting for payment confirmation.')));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_dioMessage(e))));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Bad state: ', ''))));
+    } finally {
+      if (mounted) setState(() => _paying = false);
+    }
+  }
+
   String _statusTitle(String? status) {
     switch (status) {
-      case 'preparing':
-        return 'Preparing';
-      case 'ready':
-        return 'Ready';
-      case 'outForDelivery':
-        return 'On the way';
-      case 'delivered':
-        return 'Delivered';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return 'Order received';
+      case 'preparing': return 'Preparing';
+      case 'ready': return 'Ready';
+      case 'outForDelivery': return 'On the way';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return 'Order received';
     }
   }
 
   String _statusMessage(String? status) {
     switch (status) {
-      case 'preparing':
-        return 'The kitchen is preparing your order.';
-      case 'ready':
-        return 'Your order is ready.';
-      case 'outForDelivery':
-        return 'Your order is on the way.';
-      case 'delivered':
-        return 'Your order has been delivered.';
-      case 'cancelled':
-        return 'This order was cancelled.';
-      default:
-        return 'Your order has been received and is waiting for the kitchen.';
+      case 'preparing': return 'The kitchen is preparing your order.';
+      case 'ready': return 'Your order is ready.';
+      case 'outForDelivery': return 'Your order is on the way.';
+      case 'delivered': return 'Your order has been delivered.';
+      case 'cancelled': return 'This order was cancelled.';
+      default: return 'Your order has been received and is waiting for the kitchen.';
     }
   }
 
   int _statusStep(String? status) {
     switch (status) {
-      case 'preparing':
-        return 1;
-      case 'ready':
-        return 2;
-      case 'outForDelivery':
-        return 3;
-      case 'delivered':
-        return 4;
-      case 'cancelled':
-        return -1;
-      default:
-        return 0;
+      case 'preparing': return 1;
+      case 'ready': return 2;
+      case 'outForDelivery': return 3;
+      case 'delivered': return 4;
+      case 'cancelled': return -1;
+      default: return 0;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_orderNumber != null) return _buildSuccess();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F7F5),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_context?['restaurant_name']?.toString() ?? 'SpiceOS', style: const TextStyle(fontWeight: FontWeight.w800)),
-            if (_context?['table_name'] != null)
-              Text('Table ${_context!['table_name']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-          ],
-        ),
-        actions: [
-          IconButton(onPressed: _loadMenu, icon: const Icon(Icons.refresh)),
-        ],
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_context?['restaurant_name']?.toString() ?? 'SpiceOS', style: const TextStyle(fontWeight: FontWeight.w800)),
+          if (_context?['table_name'] != null) Text('Table ${_context!['table_name']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        ]),
+        actions: [IconButton(onPressed: _loadMenu, icon: const Icon(Icons.refresh))],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -372,14 +346,11 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(color: const Color(0xFFFFEDE4), borderRadius: BorderRadius.circular(20)),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Order from your table', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                            SizedBox(height: 5),
-                            Text('Browse the menu, add your favourites and place your order directly.'),
-                          ],
-                        ),
+                        child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('Order from your table', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                          SizedBox(height: 5),
+                          Text('Browse the menu, add your favourites and pay securely at the table.'),
+                        ]),
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
@@ -390,15 +361,13 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                           separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, index) {
                             final category = _categories[index];
-                            final selected = category == _selectedCategory;
-                            return ChoiceChip(label: Text(category), selected: selected, onSelected: (_) => setState(() => _selectedCategory = category));
+                            return ChoiceChip(label: Text(category), selected: category == _selectedCategory, onSelected: (_) => setState(() => _selectedCategory = category));
                           },
                         ),
                       ),
                       const SizedBox(height: 16),
                       ..._visibleItems.map(_buildMenuItem),
-                      if (_visibleItems.isEmpty)
-                        const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No items are currently available.'))),
+                      if (_visibleItems.isEmpty) const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No items are currently available.'))),
                     ],
                   ),
                 ),
@@ -410,14 +379,12 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                 child: ElevatedButton(
                   onPressed: _openCart,
                   style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Row(
-                    children: [
-                      CircleAvatar(radius: 12, child: Text('$_cartCount', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800))),
-                      const SizedBox(width: 10),
-                      const Expanded(child: Text('View order', style: TextStyle(fontWeight: FontWeight.w700))),
-                      Text('₹${_cartTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    ],
-                  ),
+                  child: Row(children: [
+                    CircleAvatar(radius: 12, child: Text('$_cartCount', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800))),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text('View order', style: TextStyle(fontWeight: FontWeight.w700))),
+                    Text('₹${_cartTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ]),
                 ),
               ),
             ),
@@ -432,65 +399,50 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.category.toUpperCase(), style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-                  const SizedBox(height: 4),
-                  Text(item.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                  if (item.description != null && item.description!.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade700, height: 1.3)),
-                  ],
-                  const SizedBox(height: 9),
-                  Text('₹${item.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            quantity == 0
-                ? OutlinedButton(onPressed: item.available ? () => _changeQuantity(item, 1) : null, child: const Text('Add'))
-                : Container(
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        IconButton(onPressed: () => _changeQuantity(item, -1), icon: const Icon(Icons.remove, size: 18)),
-                        Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800)),
-                        IconButton(onPressed: item.available ? () => _changeQuantity(item, 1) : null, icon: const Icon(Icons.add, size: 18)),
-                      ],
-                    ),
-                  ),
-          ],
-        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(item.category.toUpperCase(), style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+            const SizedBox(height: 4),
+            Text(item.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            if (item.description != null && item.description!.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade700, height: 1.3)),
+            ],
+            const SizedBox(height: 9),
+            Text('₹${item.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ])),
+          const SizedBox(width: 12),
+          quantity == 0
+              ? OutlinedButton(onPressed: item.available ? () => _changeQuantity(item, 1) : null, child: const Text('Add'))
+              : Container(
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    IconButton(onPressed: () => _changeQuantity(item, -1), icon: const Icon(Icons.remove, size: 18)),
+                    Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    IconButton(onPressed: item.available ? () => _changeQuantity(item, 1) : null, icon: const Icon(Icons.add, size: 18)),
+                  ]),
+                ),
+        ]),
       ),
     );
   }
 
-  Widget _buildError() {
-    return Center(
-      child: Padding(
+  Widget _buildError() => Center(child: Padding(
         padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.qr_code_2, size: 58),
-            const SizedBox(height: 16),
-            Text(_error!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 18),
-            ElevatedButton.icon(onPressed: _loadMenu, icon: const Icon(Icons.refresh), label: const Text('Try again')),
-          ],
-        ),
-      ),
-    );
-  }
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.qr_code_2, size: 58),
+          const SizedBox(height: 16),
+          Text(_error!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(onPressed: _loadMenu, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+        ]),
+      ));
 
   Widget _buildSuccess() {
     final step = _statusStep(_orderStatus);
     final cancelled = _orderStatus == 'cancelled';
+    final paid = _paymentStatus == 'paid';
+    final paymentPending = !paid && !cancelled;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F7F5),
       body: SafeArea(
@@ -502,50 +454,75 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               child: Padding(
                 padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(radius: 34, child: Icon(cancelled ? Icons.close : Icons.check, size: 36)),
-                    const SizedBox(height: 18),
-                    const Text('Order placed!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    Text('Order $_orderNumber', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  CircleAvatar(radius: 34, child: Icon(cancelled ? Icons.close : paid ? Icons.check : Icons.receipt_long, size: 36)),
+                  const SizedBox(height: 18),
+                  Text(cancelled ? 'Order cancelled' : 'Order placed!', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Text('Order $_orderNumber', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text('Table ${_context?['table_name'] ?? ''}', style: TextStyle(color: Colors.grey.shade700)),
+                  const SizedBox(height: 22),
+                  if (!cancelled) ...[
+                    Text(_statusTitle(_orderStatus), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
-                    Text('Table ${_context?['table_name'] ?? ''}', style: TextStyle(color: Colors.grey.shade700)),
+                    Text(_statusMessage(_orderStatus), textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
                     const SizedBox(height: 22),
-                    if (!cancelled) ...[
-                      Text(_statusTitle(_orderStatus), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 6),
-                      Text(_statusMessage(_orderStatus), textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
-                      const SizedBox(height: 22),
-                      _StatusProgress(currentStep: step),
-                    ] else ...[
-                      const Text('This order was cancelled.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                    ],
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_loadingStatus) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                        if (_loadingStatus) const SizedBox(width: 8),
-                        Text('Updates automatically every 5 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      ],
+                    _StatusProgress(currentStep: step),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: paid ? Colors.green.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(16)),
+                      child: Column(children: [
+                        Row(children: [
+                          Icon(paid ? Icons.verified : Icons.payment, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(paid ? 'Payment confirmed' : 'Payment pending', style: const TextStyle(fontWeight: FontWeight.w800))),
+                        ]),
+                        if (paymentPending) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _paymentStatus == 'verified'
+                                ? 'Payment details received. Waiting for confirmation.'
+                                : 'Complete payment securely to confirm your order.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _paying ? null : _payNow,
+                              icon: _paying ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.lock),
+                              label: Text(_paying ? 'Opening secure checkout…' : 'Pay securely'),
+                            ),
+                          ),
+                        ],
+                      ]),
                     ),
-                    const SizedBox(height: 18),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        _statusTimer?.cancel();
-                        setState(() {
-                          _orderNumber = null;
-                          _publicOrderToken = null;
-                          _orderStatus = null;
-                        });
-                      },
-                      icon: const Icon(Icons.add_shopping_cart),
-                      label: const Text('Order something else'),
-                    ),
-                  ],
-                ),
+                  ] else
+                    const Text('This order was cancelled.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    if (_loadingStatus) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                    if (_loadingStatus) const SizedBox(width: 8),
+                    Text('Updates automatically every 5 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  ]),
+                  const SizedBox(height: 18),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      _statusTimer?.cancel();
+                      setState(() {
+                        _orderNumber = null;
+                        _publicOrderToken = null;
+                        _orderStatus = null;
+                        _paymentStatus = null;
+                      });
+                    },
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: const Text('Order something else'),
+                  ),
+                ]),
               ),
             ),
           ),
@@ -557,47 +534,27 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
 
 class _StatusProgress extends StatelessWidget {
   const _StatusProgress({required this.currentStep});
-
   final int currentStep;
 
   @override
   Widget build(BuildContext context) {
     const labels = ['Received', 'Preparing', 'Ready', 'Delivered'];
-    return Column(
-      children: [
-        Row(
-          children: List.generate(labels.length, (index) {
-            final active = currentStep >= index;
-            return Expanded(
-              child: Row(
-                children: [
-                  CircleAvatar(radius: 13, child: active ? const Icon(Icons.check, size: 15) : Text('${index + 1}', style: const TextStyle(fontSize: 12))),
-                  if (index < labels.length - 1)
-                    Expanded(child: Container(height: 2, margin: const EdgeInsets.symmetric(horizontal: 4), color: currentStep > index ? AppColors.primary : Colors.grey.shade300)),
-                ],
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 7),
-        Row(
-          children: labels.map((label) => Expanded(child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)))).toList(),
-        ),
-      ],
-    );
+    return Column(children: [
+      Row(children: List.generate(labels.length, (index) {
+        final active = currentStep >= index;
+        return Expanded(child: Row(children: [
+          CircleAvatar(radius: 13, child: active ? const Icon(Icons.check, size: 15) : Text('${index + 1}', style: const TextStyle(fontSize: 12))),
+          if (index < labels.length - 1) Expanded(child: Container(height: 2, margin: const EdgeInsets.symmetric(horizontal: 4), color: currentStep > index ? AppColors.primary : Colors.grey.shade300)),
+        ]));
+      })),
+      const SizedBox(height: 7),
+      Row(children: labels.map((label) => Expanded(child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)))).toList()),
+    ]);
   }
 }
 
 class _CustomerMenuItem {
-  const _CustomerMenuItem({
-    required this.id,
-    required this.category,
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.available,
-  });
-
+  const _CustomerMenuItem({required this.id, required this.category, required this.name, required this.description, required this.price, required this.available});
   final int id;
   final String category;
   final String name;
@@ -605,14 +562,12 @@ class _CustomerMenuItem {
   final double price;
   final bool available;
 
-  factory _CustomerMenuItem.fromJson(Map<String, dynamic> json) {
-    return _CustomerMenuItem(
-      id: (json['id'] as num).toInt(),
-      category: json['category']?.toString() ?? 'Menu',
-      name: json['name']?.toString() ?? 'Item',
-      description: json['description']?.toString(),
-      price: (json['price'] as num?)?.toDouble() ?? 0,
-      available: json['available'] == true,
-    );
-  }
+  factory _CustomerMenuItem.fromJson(Map<String, dynamic> json) => _CustomerMenuItem(
+        id: (json['id'] as num).toInt(),
+        category: json['category']?.toString() ?? 'Menu',
+        name: json['name']?.toString() ?? 'Item',
+        description: json['description']?.toString(),
+        price: (json['price'] as num?)?.toDouble() ?? 0,
+        available: json['available'] == true,
+      );
 }
