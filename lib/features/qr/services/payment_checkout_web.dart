@@ -25,17 +25,22 @@ class PaymentCheckout {
       'handler': js.allowInterop((dynamic response) {
         try {
           final map = js.JsObject.fromBrowserObject(response);
-          completer.complete({
-            'razorpay_payment_id': map['razorpay_payment_id']?.toString(),
-            'razorpay_order_id': map['razorpay_order_id']?.toString(),
-            'razorpay_signature': map['razorpay_signature']?.toString(),
-          });
+          if (!completer.isCompleted) {
+            completer.complete({
+              'razorpay_payment_id': map['razorpay_payment_id']?.toString(),
+              'razorpay_order_id': map['razorpay_order_id']?.toString(),
+              'razorpay_signature': map['razorpay_signature']?.toString(),
+            });
+          }
         } catch (_) {
           if (!completer.isCompleted) completer.completeError(StateError('Invalid payment response.'));
         }
       }),
       'modal': {
         'confirm_close': true,
+        'ondismiss': js.allowInterop(() {
+          if (!completer.isCompleted) completer.complete(null);
+        }),
       },
     });
 
@@ -48,9 +53,7 @@ class PaymentCheckout {
       razorpay.callMethod('on', [
         'payment.failed',
         js.allowInterop((dynamic response) {
-          if (!completer.isCompleted) {
-            completer.completeError(StateError('Payment failed. Please try again.'));
-          }
+          if (!completer.isCompleted) completer.completeError(StateError('Payment failed. Please try again.'));
         }),
       ]);
       razorpay.callMethod('open');
