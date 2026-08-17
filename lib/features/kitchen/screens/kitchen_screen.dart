@@ -73,6 +73,12 @@ class _KitchenColumn extends ConsumerWidget {
     required this.orders,
   });
 
+  bool _requiresPaymentBeforePreparation(Order order) {
+    return order.status == OrderStatus.created &&
+        order.orderSource == 'qr_table' &&
+        order.paymentStatus != PaymentStatus.paid;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
@@ -91,36 +97,39 @@ class _KitchenColumn extends ConsumerWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final order = orders[index];
+                  final paymentRequired = _requiresPaymentBeforePreparation(order);
                   return KitchenOrderCard(
                     order: order,
-                    buttonText: buttonText,
-                    onPressed: () async {
-                      try {
-                        final notifier = ref.read(ordersProvider.notifier);
-                        switch (order.status) {
-                          case OrderStatus.created:
-                            await notifier.startPreparing(order.id);
-                            break;
-                          case OrderStatus.preparing:
-                            await notifier.markReady(order.id);
-                            break;
-                          case OrderStatus.ready:
-                            await notifier.dispatch(order.id);
-                            break;
-                          case OrderStatus.outForDelivery:
-                          case OrderStatus.delivered:
-                          case OrderStatus.cancelled:
-                            return;
-                        }
-                      } catch (error) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Unable to update order: $error'),
-                          ),
-                        );
-                      }
-                    },
+                    buttonText: paymentRequired ? 'Awaiting Payment' : buttonText,
+                    onPressed: paymentRequired
+                        ? null
+                        : () async {
+                            try {
+                              final notifier = ref.read(ordersProvider.notifier);
+                              switch (order.status) {
+                                case OrderStatus.created:
+                                  await notifier.startPreparing(order.id);
+                                  break;
+                                case OrderStatus.preparing:
+                                  await notifier.markReady(order.id);
+                                  break;
+                                case OrderStatus.ready:
+                                  await notifier.dispatch(order.id);
+                                  break;
+                                case OrderStatus.outForDelivery:
+                                case OrderStatus.delivered:
+                                case OrderStatus.cancelled:
+                                  return;
+                              }
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Unable to update order: $error'),
+                                ),
+                              );
+                            }
+                          },
                   );
                 },
               ),
