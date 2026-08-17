@@ -356,7 +356,7 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                 children: [
                   Text(item.category.toUpperCase(), style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
                   const SizedBox(height: 4),
-                  Text(item.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w750)),
+                  Text(item.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                   if (item.description != null && item.description!.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade700, height: 1.3)),
@@ -375,7 +375,7 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                       children: [
                         IconButton(onPressed: () => _changeQuantity(item, -1), icon: const Icon(Icons.remove, size: 18)),
                         Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800)),
-                        IconButton(onPressed: () => _changeQuantity(item, 1), icon: const Icon(Icons.add, size: 18)),
+                        IconButton(onPressed: item.available ? () => _changeQuantity(item, 1) : null, icon: const Icon(Icons.add, size: 18)),
                       ],
                     ),
                   ),
