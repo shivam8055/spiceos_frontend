@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,18 +17,26 @@ final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
 class OrdersNotifier extends StateNotifier<List<Order>> {
   OrdersNotifier(this._repository) : super([]) {
     loadOrders();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => loadOrders(),
+    );
   }
 
   final OrdersRepository _repository;
+  Timer? _refreshTimer;
 
   bool isLoading = false;
   String? error;
 
   Future<void> loadOrders() async {
+    if (isLoading) return;
+
     try {
       isLoading = true;
       error = null;
       final orders = await _repository.getOrders();
+      if (!mounted) return;
       state = List<Order>.from(orders);
     } catch (e, stackTrace) {
       error = e.toString();
@@ -90,6 +100,12 @@ class OrdersNotifier extends StateNotifier<List<Order>> {
     }
 
     await updateOrder(order.copyWith(status: to));
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }
 
