@@ -23,12 +23,12 @@ class PaymentCheckout {
       if (!completer.isCompleted) completer.completeError(error);
     }
 
-    final handler = (JSAny? response) {
+    JSFunction paymentHandler(JSAny? response) {
       try {
         final data = response?.dartify();
         if (data is! Map) {
           completeError(StateError('Invalid payment response.'));
-          return;
+          return () {}.toJS;
         }
         final map = Map<String, dynamic>.from(data);
         if (!completer.isCompleted) {
@@ -41,7 +41,16 @@ class PaymentCheckout {
       } catch (_) {
         completeError(StateError('Invalid payment response.'));
       }
-    };
+      return () {}.toJS;
+    }
+
+    final handler = paymentHandler.toJS;
+    final dismissHandler = (() {
+      if (!completer.isCompleted) completer.complete(null);
+    }).toJS;
+    final failedHandler = ((JSAny? _) {
+      completeError(StateError('Payment failed. Please try again.'));
+    }).toJS;
 
     final options = <String, dynamic>{
       'key': keyId,
@@ -54,20 +63,16 @@ class PaymentCheckout {
         'name': name,
         if (phone != null && phone.isNotEmpty) 'contact': phone,
       },
-      'handler': handler.toJS,
+      'handler': handler,
       'modal': {
         'confirm_close': true,
-        'ondismiss': (() {
-          if (!completer.isCompleted) completer.complete(null);
-        }).toJS,
+        'ondismiss': dismissHandler,
       },
-    }.jsify();
+    }.jsify() as JSObject;
 
     try {
       final razorpay = _Razorpay(options);
-      razorpay.on('payment.failed'.toJS, ((JSAny? _) {
-        completeError(StateError('Payment failed. Please try again.'));
-      }).toJS);
+      razorpay.on('payment.failed'.toJS, failedHandler);
       razorpay.open();
     } catch (error) {
       completeError(error);
