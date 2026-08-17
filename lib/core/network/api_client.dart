@@ -56,7 +56,7 @@ class ApiClient {
 
   Future<Response<dynamic>> get(String path) => _dio.get(path);
 
-  Future<Response<dynamic>> post(String path, Object? body) =>
+  Future<Response<dynamic>> post(String path, [Object? body]) =>
       _dio.post(path, data: body);
 
   Future<Response<dynamic>> postWithHeaders(
