@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,15 +22,24 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
   final Map<int, int> _cart = {};
   bool _loading = true;
   bool _placingOrder = false;
+  bool _loadingStatus = false;
   String? _error;
   String? _orderNumber;
   String? _publicOrderToken;
+  String? _orderStatus;
+  Timer? _statusTimer;
   String _selectedCategory = 'All';
 
   @override
   void initState() {
     super.initState();
     _loadMenu();
+  }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadMenu() async {
@@ -230,9 +241,11 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
       setState(() {
         _orderNumber = data['order_number']?.toString();
         _publicOrderToken = data['public_order_token']?.toString();
+        _orderStatus = data['status']?.toString() ?? 'created';
         _cart.clear();
         _placingOrder = false;
       });
+      _startStatusPolling();
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _placingOrder = false);
@@ -241,6 +254,88 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
       if (!mounted) return;
       setState(() => _placingOrder = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not place the order. Please try again.')));
+    }
+  }
+
+  void _startStatusPolling() {
+    _statusTimer?.cancel();
+    if (_publicOrderToken == null) return;
+    _loadOrderStatus();
+    _statusTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadOrderStatus());
+  }
+
+  Future<void> _loadOrderStatus() async {
+    final publicToken = _publicOrderToken;
+    if (publicToken == null || _loadingStatus) return;
+    _loadingStatus = true;
+    try {
+      final response = await ref.read(apiClientProvider).get('/qr/public/orders/$publicToken');
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (!mounted) return;
+      final status = data['status']?.toString() ?? 'created';
+      setState(() {
+        _orderStatus = status;
+      });
+      if (status == 'delivered' || status == 'cancelled') {
+        _statusTimer?.cancel();
+      }
+    } on DioException catch (_) {
+      // Keep the current status visible and retry on the next polling interval.
+    } catch (_) {
+      // Keep the current status visible and retry on the next polling interval.
+    } finally {
+      _loadingStatus = false;
+    }
+  }
+
+  String _statusTitle(String? status) {
+    switch (status) {
+      case 'preparing':
+        return 'Preparing';
+      case 'ready':
+        return 'Ready';
+      case 'outForDelivery':
+        return 'On the way';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Order received';
+    }
+  }
+
+  String _statusMessage(String? status) {
+    switch (status) {
+      case 'preparing':
+        return 'The kitchen is preparing your order.';
+      case 'ready':
+        return 'Your order is ready.';
+      case 'outForDelivery':
+        return 'Your order is on the way.';
+      case 'delivered':
+        return 'Your order has been delivered.';
+      case 'cancelled':
+        return 'This order was cancelled.';
+      default:
+        return 'Your order has been received and is waiting for the kitchen.';
+    }
+  }
+
+  int _statusStep(String? status) {
+    switch (status) {
+      case 'preparing':
+        return 1;
+      case 'ready':
+        return 2;
+      case 'outForDelivery':
+        return 3;
+      case 'delivered':
+        return 4;
+      case 'cancelled':
+        return -1;
+      default:
+        return 0;
     }
   }
 
@@ -276,10 +371,7 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEDE4),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                        decoration: BoxDecoration(color: const Color(0xFFFFEDE4), borderRadius: BorderRadius.circular(20)),
                         child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -299,21 +391,14 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                           itemBuilder: (_, index) {
                             final category = _categories[index];
                             final selected = category == _selectedCategory;
-                            return ChoiceChip(
-                              label: Text(category),
-                              selected: selected,
-                              onSelected: (_) => setState(() => _selectedCategory = category),
-                            );
+                            return ChoiceChip(label: Text(category), selected: selected, onSelected: (_) => setState(() => _selectedCategory = category));
                           },
                         ),
                       ),
                       const SizedBox(height: 16),
                       ..._visibleItems.map(_buildMenuItem),
                       if (_visibleItems.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: Text('No items are currently available.')),
-                        ),
+                        const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('No items are currently available.'))),
                     ],
                   ),
                 ),
@@ -404,11 +489,13 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
   }
 
   Widget _buildSuccess() {
+    final step = _statusStep(_orderStatus);
+    final cancelled = _orderStatus == 'cancelled';
     return Scaffold(
       backgroundColor: const Color(0xFFF8F7F5),
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Card(
               elevation: 0,
@@ -418,19 +505,42 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircleAvatar(radius: 34, child: Icon(Icons.check, size: 36)),
+                    CircleAvatar(radius: 34, child: Icon(cancelled ? Icons.close : Icons.check, size: 36)),
                     const SizedBox(height: 18),
                     const Text('Order placed!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 8),
                     Text('Order $_orderNumber', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text('Your order has been sent to the kitchen. Table ${_context?['table_name'] ?? ''}.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
+                    Text('Table ${_context?['table_name'] ?? ''}', style: TextStyle(color: Colors.grey.shade700)),
                     const SizedBox(height: 22),
-                    if (_publicOrderToken != null)
-                      Text('Keep this page open to track your order.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+                    if (!cancelled) ...[
+                      Text(_statusTitle(_orderStatus), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text(_statusMessage(_orderStatus), textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
+                      const SizedBox(height: 22),
+                      _StatusProgress(currentStep: step),
+                    ] else ...[
+                      const Text('This order was cancelled.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_loadingStatus) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                        if (_loadingStatus) const SizedBox(width: 8),
+                        Text('Updates automatically every 5 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      ],
+                    ),
                     const SizedBox(height: 18),
                     OutlinedButton.icon(
-                      onPressed: () => setState(() => _orderNumber = null),
+                      onPressed: () {
+                        _statusTimer?.cancel();
+                        setState(() {
+                          _orderNumber = null;
+                          _publicOrderToken = null;
+                          _orderStatus = null;
+                        });
+                      },
                       icon: const Icon(Icons.add_shopping_cart),
                       label: const Text('Order something else'),
                     ),
@@ -441,6 +551,39 @@ class _QRCustomerOrderScreenState extends ConsumerState<QRCustomerOrderScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StatusProgress extends StatelessWidget {
+  const _StatusProgress({required this.currentStep});
+
+  final int currentStep;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Received', 'Preparing', 'Ready', 'Delivered'];
+    return Column(
+      children: [
+        Row(
+          children: List.generate(labels.length, (index) {
+            final active = currentStep >= index;
+            return Expanded(
+              child: Row(
+                children: [
+                  CircleAvatar(radius: 13, child: active ? const Icon(Icons.check, size: 15) : Text('${index + 1}', style: const TextStyle(fontSize: 12))),
+                  if (index < labels.length - 1)
+                    Expanded(child: Container(height: 2, margin: const EdgeInsets.symmetric(horizontal: 4), color: currentStep > index ? AppColors.primary : Colors.grey.shade300)),
+                ],
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 7),
+        Row(
+          children: labels.map((label) => Expanded(child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)))).toList(),
+        ),
+      ],
     );
   }
 }
