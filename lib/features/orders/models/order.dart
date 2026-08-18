@@ -20,6 +20,7 @@ class Order {
   final String customerName;
   final String primaryItem;
   final DateTime createdAt;
+  final DateTime? preparingAt;
   final OrderStatus status;
   final PaymentStatus paymentStatus;
   final double totalAmount;
@@ -32,6 +33,7 @@ class Order {
     required this.customerName,
     required this.primaryItem,
     required this.createdAt,
+    required this.preparingAt,
     required this.status,
     required this.paymentStatus,
     required this.totalAmount,
@@ -46,6 +48,7 @@ class Order {
       customerName: json['customer_name']?.toString() ?? '',
       primaryItem: json['primary_item']?.toString() ?? '',
       createdAt: _parseDateTime(json['created_at']),
+      preparingAt: _parseNullableDateTime(json['preparing_at']),
       status: _parseOrderStatus(json['status']),
       paymentStatus: _parsePaymentStatus(json['payment_status']),
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
@@ -58,6 +61,13 @@ class Order {
       return DateTime.tryParse(value) ?? DateTime.now();
     }
     return DateTime.now();
+  }
+
+  static DateTime? _parseNullableDateTime(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   static OrderStatus _parseOrderStatus(dynamic value) {
@@ -99,6 +109,7 @@ class Order {
       'customer_name': customerName,
       'primary_item': primaryItem,
       'created_at': createdAt.toIso8601String(),
+      'preparing_at': preparingAt?.toIso8601String(),
       'status': status.name,
       'payment_status': paymentStatus.name,
       'total': totalAmount,
@@ -113,6 +124,7 @@ class Order {
     String? customerName,
     String? primaryItem,
     DateTime? createdAt,
+    DateTime? preparingAt,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
     double? totalAmount,
@@ -125,6 +137,7 @@ class Order {
       customerName: customerName ?? this.customerName,
       primaryItem: primaryItem ?? this.primaryItem,
       createdAt: createdAt ?? this.createdAt,
+      preparingAt: preparingAt ?? this.preparingAt,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       totalAmount: totalAmount ?? this.totalAmount,
