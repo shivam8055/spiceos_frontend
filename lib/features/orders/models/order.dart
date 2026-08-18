@@ -47,8 +47,8 @@ class Order {
       customerId: json['customer_id']?.toString() ?? '',
       customerName: json['customer_name']?.toString() ?? '',
       primaryItem: json['primary_item']?.toString() ?? '',
-      createdAt: _parseDateTime(json['created_at']),
-      preparingAt: _parseNullableDateTime(json['preparing_at']),
+      createdAt: _parseBackendUtcDateTime(json['created_at']) ?? DateTime.now(),
+      preparingAt: _parseBackendUtcDateTime(json['preparing_at']),
       status: _parseOrderStatus(json['status']),
       paymentStatus: _parsePaymentStatus(json['payment_status']),
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
@@ -56,18 +56,29 @@ class Order {
     );
   }
 
-  static DateTime _parseDateTime(dynamic value) {
-    if (value is String) {
-      return DateTime.tryParse(value) ?? DateTime.now();
-    }
-    return DateTime.now();
-  }
+  static DateTime? _parseBackendUtcDateTime(dynamic value) {
+    if (value is! String || value.isEmpty) return null;
 
-  static DateTime? _parseNullableDateTime(dynamic value) {
-    if (value is String && value.isNotEmpty) {
-      return DateTime.tryParse(value);
-    }
-    return null;
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return null;
+
+    // The current FastAPI/SQLAlchemy backend stores UTC timestamps as naive
+    // datetimes. Dart treats a timestamp without an offset as local time, so
+    // explicitly mark those responses as UTC to avoid an India +05:30 drift.
+    final hasTimezone = value.endsWith('Z') ||
+        RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(value);
+    if (hasTimezone) return parsed;
+
+    return DateTime.utc(
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+      parsed.millisecond,
+      parsed.microsecond,
+    );
   }
 
   static OrderStatus _parseOrderStatus(dynamic value) {
