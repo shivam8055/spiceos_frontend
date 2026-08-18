@@ -48,14 +48,33 @@ class KitchenOrderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    order.orderNumber,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.customerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        order.orderNumber,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 Text(
                   '₹${order.totalAmount.toStringAsFixed(0)}',
                   style: const TextStyle(
@@ -65,9 +84,7 @@ class KitchenOrderCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(order.customerName),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             KitchenTimer(startedAt: timerStart),
             if (order.primaryItem.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -85,6 +102,22 @@ class KitchenOrderCard extends StatelessWidget {
                 child: Text(buttonText),
               ),
             ),
+            if (order.transactionCode != null) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.center,
+                child: Text(
+                  'Txn: ${order.transactionCode}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
