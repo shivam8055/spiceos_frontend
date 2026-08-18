@@ -21,10 +21,12 @@ class Order {
   final String primaryItem;
   final DateTime createdAt;
   final DateTime? preparingAt;
+  final DateTime? deliveredAt;
   final OrderStatus status;
   final PaymentStatus paymentStatus;
   final double totalAmount;
   final String orderSource;
+  final String? transactionCode;
 
   const Order({
     required this.id,
@@ -34,10 +36,12 @@ class Order {
     required this.primaryItem,
     required this.createdAt,
     this.preparingAt,
+    this.deliveredAt,
     required this.status,
     required this.paymentStatus,
     required this.totalAmount,
     required this.orderSource,
+    this.transactionCode,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -49,11 +53,18 @@ class Order {
       primaryItem: json['primary_item']?.toString() ?? '',
       createdAt: _parseBackendUtcDateTime(json['created_at']) ?? DateTime.now(),
       preparingAt: _parseBackendUtcDateTime(json['preparing_at']),
+      deliveredAt: _parseBackendUtcDateTime(json['delivered_at']),
       status: _parseOrderStatus(json['status']),
       paymentStatus: _parsePaymentStatus(json['payment_status']),
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
       orderSource: json['order_source']?.toString() ?? 'Unknown',
+      transactionCode: _nullableString(json['transaction_code']),
     );
+  }
+
+  static String? _nullableString(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static DateTime? _parseBackendUtcDateTime(dynamic value) {
@@ -112,6 +123,12 @@ class Order {
     }
   }
 
+  Duration? get totalDeliveryTime {
+    if (deliveredAt == null) return null;
+    final duration = deliveredAt!.difference(createdAt);
+    return duration.isNegative ? null : duration;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -121,10 +138,12 @@ class Order {
       'primary_item': primaryItem,
       'created_at': createdAt.toIso8601String(),
       'preparing_at': preparingAt?.toIso8601String(),
+      'delivered_at': deliveredAt?.toIso8601String(),
       'status': status.name,
       'payment_status': paymentStatus.name,
       'total': totalAmount,
       'order_source': orderSource,
+      'transaction_code': transactionCode,
     };
   }
 
@@ -136,10 +155,12 @@ class Order {
     String? primaryItem,
     DateTime? createdAt,
     DateTime? preparingAt,
+    DateTime? deliveredAt,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
     double? totalAmount,
     String? orderSource,
+    String? transactionCode,
   }) {
     return Order(
       id: id ?? this.id,
@@ -149,10 +170,12 @@ class Order {
       primaryItem: primaryItem ?? this.primaryItem,
       createdAt: createdAt ?? this.createdAt,
       preparingAt: preparingAt ?? this.preparingAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       totalAmount: totalAmount ?? this.totalAmount,
       orderSource: orderSource ?? this.orderSource,
+      transactionCode: transactionCode ?? this.transactionCode,
     );
   }
 }
