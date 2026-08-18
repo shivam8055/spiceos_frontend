@@ -5,6 +5,8 @@ import 'package:spicebox/core/theme/app_theme.dart';
 import '../features/auth/providers/auth_notifier.dart';
 import 'router.dart';
 
+final routerProvider = Provider<GoRouter>((ref) => createRouter(ref));
+
 class SpiceOSApp extends ConsumerWidget {
   const SpiceOSApp({super.key});
 
@@ -16,7 +18,7 @@ class SpiceOSApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'SpiceOS',
       theme: AppTheme.lightTheme,
-      routerConfig: createRouter(ref),
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }
