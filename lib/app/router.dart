@@ -31,6 +31,8 @@ GoRouter createRouter(WidgetRef ref) {
       // QR customer ordering is intentionally public. The QR token is the
       // authorization context and the backend resolves it to the restaurant
       // and table; never require staff Firebase authentication here.
+      // Keep this decision before all staff permission checks so a QR scan
+      // cannot be redirected to /login while Firebase auth is loading.
       if (publicOrder) return null;
 
       if (authState.isLoading) return null;
