@@ -14,8 +14,18 @@ class OrderCard extends StatelessWidget {
     this.onTap,
   });
 
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes < 1) return '${duration.inSeconds}s';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${duration.inMinutes}m';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final deliveryTime = order.totalDeliveryTime;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -66,7 +76,7 @@ class OrderCard extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    "₹${order.totalAmount.toStringAsFixed(0)}",
+                    '₹${order.totalAmount.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -76,6 +86,36 @@ class OrderCard extends StatelessWidget {
                   PaymentStatusChip(status: order.paymentStatus),
                 ],
               ),
+
+              if (deliveryTime != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 16,
+                        color: Colors.green.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Total delivery time: ${_formatDuration(deliveryTime)}',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 10),
 
