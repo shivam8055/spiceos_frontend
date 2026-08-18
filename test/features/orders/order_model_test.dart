@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:spiceos_frontend/features/orders/models/order.dart';
+import 'package:spicebox/features/orders/models/order.dart';
 
 void main() {
   test('interprets backend naive timestamps as UTC', () {
