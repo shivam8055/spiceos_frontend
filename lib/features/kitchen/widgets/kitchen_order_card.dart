@@ -17,7 +17,13 @@ class KitchenOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final age = DateTime.now().difference(order.createdAt);
+    // Waiting time starts at order creation. Once cooking begins, the kitchen
+    // timer switches to the server-recorded preparation start time and stays
+    // anchored there through Ready/Dispatch and browser refreshes.
+    final timerStart = order.status == OrderStatus.created
+        ? order.createdAt
+        : (order.preparingAt ?? order.createdAt);
+    final age = DateTime.now().difference(timerStart);
 
     Color borderColor = Colors.green;
     if (age.inMinutes >= 20) {
@@ -62,7 +68,7 @@ class KitchenOrderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(order.customerName),
             const SizedBox(height: 8),
-            KitchenTimer(createdAt: order.createdAt),
+            KitchenTimer(startedAt: timerStart),
             if (order.primaryItem.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
