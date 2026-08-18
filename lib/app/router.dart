@@ -18,7 +18,7 @@ import '../features/qr/screens/qr_tables_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
-GoRouter createRouter(WidgetRef ref) {
+GoRouter createRouter(Ref ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
@@ -31,8 +31,6 @@ GoRouter createRouter(WidgetRef ref) {
       // QR customer ordering is intentionally public. The QR token is the
       // authorization context and the backend resolves it to the restaurant
       // and table; never require staff Firebase authentication here.
-      // Keep this decision before all staff permission checks so a QR scan
-      // cannot be redirected to /login while Firebase auth is loading.
       if (publicOrder) return null;
 
       if (authState.isLoading) return null;
