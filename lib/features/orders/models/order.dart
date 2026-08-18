@@ -21,6 +21,8 @@ class Order {
   final String primaryItem;
   final DateTime createdAt;
   final DateTime? preparingAt;
+  final DateTime? readyAt;
+  final DateTime? outForDeliveryAt;
   final DateTime? deliveredAt;
   final OrderStatus status;
   final PaymentStatus paymentStatus;
@@ -36,6 +38,8 @@ class Order {
     required this.primaryItem,
     required this.createdAt,
     this.preparingAt,
+    this.readyAt,
+    this.outForDeliveryAt,
     this.deliveredAt,
     required this.status,
     required this.paymentStatus,
@@ -53,6 +57,8 @@ class Order {
       primaryItem: json['primary_item']?.toString() ?? '',
       createdAt: _parseBackendUtcDateTime(json['created_at']) ?? DateTime.now(),
       preparingAt: _parseBackendUtcDateTime(json['preparing_at']),
+      readyAt: _parseBackendUtcDateTime(json['ready_at']),
+      outForDeliveryAt: _parseBackendUtcDateTime(json['out_for_delivery_at']),
       deliveredAt: _parseBackendUtcDateTime(json['delivered_at']),
       status: _parseOrderStatus(json['status']),
       paymentStatus: _parsePaymentStatus(json['payment_status']),
@@ -138,6 +144,8 @@ class Order {
       'primary_item': primaryItem,
       'created_at': createdAt.toIso8601String(),
       'preparing_at': preparingAt?.toIso8601String(),
+      'ready_at': readyAt?.toIso8601String(),
+      'out_for_delivery_at': outForDeliveryAt?.toIso8601String(),
       'delivered_at': deliveredAt?.toIso8601String(),
       'status': status.name,
       'payment_status': paymentStatus.name,
@@ -155,6 +163,8 @@ class Order {
     String? primaryItem,
     DateTime? createdAt,
     DateTime? preparingAt,
+    DateTime? readyAt,
+    DateTime? outForDeliveryAt,
     DateTime? deliveredAt,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
@@ -170,6 +180,8 @@ class Order {
       primaryItem: primaryItem ?? this.primaryItem,
       createdAt: createdAt ?? this.createdAt,
       preparingAt: preparingAt ?? this.preparingAt,
+      readyAt: readyAt ?? this.readyAt,
+      outForDeliveryAt: outForDeliveryAt ?? this.outForDeliveryAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
