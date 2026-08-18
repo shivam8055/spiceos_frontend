@@ -23,6 +23,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   String? _error;
   List<MenuItem> _items = const [];
   bool _needsRestaurant = false;
+  final Set<int> _saving = {};
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; _needsRestaurant = false; });
@@ -47,6 +48,60 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     }
   }
 
+  Future<void> _toggleAvailability(MenuItem item) async {
+    if (_saving.contains(item.id)) return;
+    setState(() => _saving.add(item.id));
+    try {
+      final updated = await ref.read(menuRepositoryProvider).update(itemId: item.id, available: !item.available);
+      if (!mounted) return;
+      setState(() {
+        _items = _items.map((value) => value.id == updated.id ? updated : value).toList();
+        _saving.remove(item.id);
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving.remove(item.id));
+      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(detail ?? 'Unable to update availability.')));
+    }
+  }
+
+  Future<void> _editPrice(MenuItem item) async {
+    final controller = TextEditingController(text: item.price.toStringAsFixed(2));
+    final value = await showDialog<double>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Update ${item.name}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Price (₹)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, double.tryParse(controller.text.trim())), child: const Text('Save')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value < 0 || !mounted || _saving.contains(item.id)) return;
+    setState(() => _saving.add(item.id));
+    try {
+      final updated = await ref.read(menuRepositoryProvider).update(itemId: item.id, price: value);
+      if (!mounted) return;
+      setState(() {
+        _items = _items.map((entry) => entry.id == updated.id ? updated : entry).toList();
+        _saving.remove(item.id);
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving.remove(item.id));
+      final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(detail ?? 'Unable to update menu item.')));
+    }
+  }
+
   @override
   void initState() { super.initState(); _load(); }
   @override
@@ -60,13 +115,13 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
           const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Menu Management', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
             SizedBox(height: 6),
-            Text('Manage your live menu by branch, category and availability.'),
+            Text('Manage your live menu by branch, category, pricing and availability.'),
           ])),
           OutlinedButton.icon(onPressed: () => context.push('/menu/import'), icon: const Icon(Icons.auto_awesome), label: const Text('Import with AI')),
           const SizedBox(width: 12),
           SizedBox(width: 180, child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
           const SizedBox(width: 12),
-          FilledButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+          FilledButton.icon(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
         ]),
         const SizedBox(height: 24),
         if (_error != null)
@@ -80,15 +135,21 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             ? const Center(child: Text('No menu items yet. Import your existing menu or add your first item.'))
             : ListView.separated(
                 padding: const EdgeInsets.all(8), itemCount: _items.length, separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, index) { final item = _items[index]; return ListTile(
-                  leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
-                  title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('${item.category}${item.description == null || item.description!.isEmpty ? '' : ' • ${item.description}'}'),
-                  trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(item.available ? 'Available' : 'Unavailable', style: TextStyle(color: item.available ? AppColors.success : AppColors.error, fontSize: 12)),
-                  ]),
-                ); },
+                itemBuilder: (_, index) {
+                  final item = _items[index];
+                  final saving = _saving.contains(item.id);
+                  return ListTile(
+                    leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
+                    title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${item.category}${item.description == null || item.description!.isEmpty ? '' : ' • ${item.description}'}'),
+                    trailing: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      IconButton(tooltip: 'Edit price', onPressed: saving ? null : () => _editPrice(item), icon: const Icon(Icons.edit_outlined)),
+                      Switch(value: item.available, onChanged: saving ? null : (_) => _toggleAvailability(item)),
+                      Text(item.available ? 'Available' : 'Unavailable', style: TextStyle(color: item.available ? AppColors.success : AppColors.error, fontSize: 12)),
+                    ]),
+                  );
+                },
               ))),
       ],),
     );
