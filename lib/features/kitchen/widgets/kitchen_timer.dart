@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class KitchenTimer extends StatefulWidget {
-  final DateTime createdAt;
+  final DateTime startedAt;
 
   const KitchenTimer({
     super.key,
-    required this.createdAt,
+    required this.startedAt,
   });
 
   @override
@@ -23,7 +23,10 @@ class _KitchenTimerState extends State<KitchenTimer> {
 
     _timer = Timer.periodic(
       const Duration(seconds: 1),
-          (_) => setState(() {}),
+      (_) {
+        if (!mounted) return;
+        setState(() {});
+      },
     );
   }
 
@@ -35,7 +38,8 @@ class _KitchenTimerState extends State<KitchenTimer> {
 
   @override
   Widget build(BuildContext context) {
-    final duration = DateTime.now().difference(widget.createdAt);
+    final elapsed = DateTime.now().difference(widget.startedAt);
+    final duration = elapsed.isNegative ? Duration.zero : elapsed;
 
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
