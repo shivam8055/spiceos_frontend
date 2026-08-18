@@ -33,7 +33,7 @@ class Order {
     required this.customerName,
     required this.primaryItem,
     required this.createdAt,
-    required this.preparingAt,
+    this.preparingAt,
     required this.status,
     required this.paymentStatus,
     required this.totalAmount,
