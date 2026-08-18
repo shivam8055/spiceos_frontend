@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/order.dart';
 import '../widgets/order_status_chip.dart';
+import '../widgets/order_timeline.dart';
 import '../widgets/payment_status_chip.dart';
 
 class OrderDetailsScreen extends StatelessWidget {
@@ -23,17 +24,14 @@ class OrderDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
-              "Customer",
+              'Customer',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Card(
               child: ListTile(
                 leading: const CircleAvatar(
@@ -43,106 +41,122 @@ class OrderDetailsScreen extends StatelessWidget {
                 subtitle: Text(order.customerId),
               ),
             ),
-
             const SizedBox(height: 24),
-
             const Text(
-              "Order",
+              'Order',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-
                     Row(
                       children: [
-                        Text(order.primaryItem),
-                        const Spacer(),
-                        Text("₹${order.totalAmount.toStringAsFixed(0)}"),
+                        Expanded(child: Text(order.primaryItem)),
+                        Text('₹${order.totalAmount.toStringAsFixed(0)}'),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
                     Row(
                       children: [
-                        const Text("Source"),
+                        const Text('Source'),
                         const Spacer(),
                         Text(order.orderSource),
                       ],
                     ),
-
                     const Divider(),
-
                     Row(
                       children: [
-                        const Text("Payment"),
+                        const Text('Payment'),
                         const Spacer(),
-                        PaymentStatusChip(
-                          status: order.paymentStatus,
-                        ),
+                        PaymentStatusChip(status: order.paymentStatus),
                       ],
                     ),
-
                     const Divider(),
-
                     Row(
                       children: [
-                        const Text("Status"),
+                        const Text('Status'),
                         const Spacer(),
-                        OrderStatusChip(
-                          status: order.status,
-                        ),
+                        OrderStatusChip(status: order.status),
                       ],
                     ),
+                    if (order.transactionCode != null) ...[
+                      const Divider(),
+                      Row(
+                        children: [
+                          const Text('Transaction'),
+                          const Spacer(),
+                          Flexible(
+                            child: Text(
+                              order.transactionCode!,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-
+            const SizedBox(height: 24),
+            OrderTimeline(order: order),
+            if (order.totalDeliveryTime != null) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.timer_outlined),
+                  title: const Text('Total delivery time'),
+                  trailing: Text(
+                    _formatDuration(order.totalDeliveryTime!),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.local_shipping),
-                label: const Text("Assign Delivery Rider"),
+                label: const Text('Assign Delivery Rider'),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.print),
-                label: const Text("Print Invoice"),
+                label: const Text('Print Invoice'),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.chat),
-                label: const Text("WhatsApp Customer"),
+                label: const Text('WhatsApp Customer'),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes < 1) return '${duration.inSeconds}s';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${duration.inMinutes}m';
   }
 }
