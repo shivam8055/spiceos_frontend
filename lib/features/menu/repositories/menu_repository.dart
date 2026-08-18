@@ -16,4 +16,16 @@ class MenuRepository {
     }
     return const [];
   }
+
+  Future<MenuItem> update({required int itemId, String? branchId, String? category, String? name, String? description, double? price, bool? available}) async {
+    final payload = <String, dynamic>{};
+    if (branchId != null) payload['branch_id'] = branchId;
+    if (category != null) payload['category'] = category;
+    if (name != null) payload['name'] = name;
+    if (description != null) payload['description'] = description;
+    if (price != null) payload['price'] = price;
+    if (available != null) payload['available'] = available;
+    final response = await _api.patch('/qr/admin/menu-items/$itemId', payload);
+    return MenuItem.fromJson(Map<String, dynamic>.from(response.data as Map));
+  }
 }
