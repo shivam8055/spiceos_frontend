@@ -6,15 +6,18 @@ import 'package:spicebox/core/theme/app_theme.dart';
 import '../features/auth/providers/auth_notifier.dart';
 import 'router.dart';
 
-final routerProvider = Provider<GoRouter>((ref) => createRouter(ref));
+final routerProvider = Provider<GoRouter>((ref) {
+  // Recreate the router whenever authentication/profile state changes so
+  // redirect rules are evaluated immediately after login/logout.
+  ref.watch(authNotifierProvider);
+  return createRouter(ref);
+});
 
 class SpiceOSApp extends ConsumerWidget {
   const SpiceOSApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(authNotifierProvider);
-
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'SpiceOS',
