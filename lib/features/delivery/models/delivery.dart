@@ -1,13 +1,15 @@
 class DeliveryAgent {
   final int id;
   final String name;
+  final String? phone;
   final String status;
 
-  const DeliveryAgent({required this.id, required this.name, required this.status});
+  const DeliveryAgent({required this.id, required this.name, this.phone, required this.status});
 
   factory DeliveryAgent.fromJson(Map<String, dynamic> json) => DeliveryAgent(
         id: json['id'] as int,
         name: json['name'] as String? ?? 'Agent',
+        phone: json['phone'] as String?,
         status: json['status'] as String? ?? 'offline',
       );
 }
