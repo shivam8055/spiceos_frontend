@@ -97,16 +97,13 @@ class DeliveryManagementScreen extends ConsumerWidget {
                           leading: CircleAvatar(child: Icon(Icons.delivery_dining)),
                           title: Text(agent.name),
                           subtitle: Text(agent.phone ?? 'No phone'),
-                          trailing: PopupMenuButton<String>(
-                            tooltip: 'Change agent status',
-                            initialValue: agent.status,
-                            onSelected: (status) => _setAgentStatus(context, ref, agent, status),
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'available', child: Text('Available')),
-                              PopupMenuItem(value: 'busy', child: Text('Busy')),
-                              PopupMenuItem(value: 'offline', child: Text('Offline')),
-                            ],
-                            child: _StatusChip(status: agent.status),
+                          trailing: OutlinedButton.icon(
+                            onPressed: () => _showAgentStatusPicker(context, ref, agent),
+                            icon: const Icon(Icons.swap_vert, size: 18),
+                            label: Text(_statusLabel(agent.status)),
+                            style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
                           ),
                         )).toList(),
                       ),
@@ -216,10 +213,38 @@ class DeliveryManagementScreen extends ConsumerWidget {
     phoneController.dispose();
   }
 
+  static Future<void> _showAgentStatusPicker(BuildContext context, WidgetRef ref, DeliveryAgent agent) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Set ${agent.name} status'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _StatusOption(value: 'available', current: agent.status, icon: Icons.check_circle_outline, label: 'Available'),
+            _StatusOption(value: 'busy', current: agent.status, icon: Icons.timelapse, label: 'Busy'),
+            _StatusOption(value: 'offline', current: agent.status, icon: Icons.pause_circle_outline, label: 'Offline'),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+        ],
+      ),
+    );
+
+    if (selected == null || selected == agent.status) return;
+    await _setAgentStatus(context, ref, agent, selected);
+  }
+
   static Future<void> _setAgentStatus(BuildContext context, WidgetRef ref, DeliveryAgent agent, String status) async {
     try {
       await ref.read(apiClientProvider).patch('/delivery/agents/${agent.id}', {'status': status});
       ref.invalidate(deliveryAgentsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${agent.name} is now ${_statusLabel(status)}.')),
+        );
+      }
     } catch (e) {
       if (context.mounted) _showError(context, _friendlyError(e));
     }
@@ -396,6 +421,19 @@ class DeliveryManagementScreen extends ConsumerWidget {
     }
   }
 
+  static String _statusLabel(String status) {
+    switch (status) {
+      case 'available':
+        return 'Available';
+      case 'busy':
+        return 'Busy';
+      case 'offline':
+        return 'Offline';
+      default:
+        return status.isEmpty ? 'Unknown' : status.toUpperCase();
+    }
+  }
+
   static IconData _statusIcon(String status) {
     switch (status) {
       case 'delivered':
@@ -414,14 +452,29 @@ class DeliveryManagementScreen extends ConsumerWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final String status;
-  const _StatusChip({required this.status});
+class _StatusOption extends StatelessWidget {
+  final String value;
+  final String current;
+  final IconData icon;
+  final String label;
+
+  const _StatusOption({
+    required this.value,
+    required this.current,
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final label = status.isEmpty ? 'UNKNOWN' : status.toUpperCase();
-    return Chip(label: Text(label));
+    final isCurrent = value == current;
+    return ListTile(
+      enabled: true,
+      leading: Icon(icon),
+      title: Text(label),
+      trailing: isCurrent ? const Icon(Icons.check) : null,
+      onTap: () => Navigator.pop(context, value),
+    );
   }
 }
 
