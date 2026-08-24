@@ -8,7 +8,7 @@ class ApiOrdersRepository implements OrdersRepository {
 
   final ApiClient api;
 
-  String _orderPath(int id) => '${ApiEndpoints.orders}/$id';
+  String _orderPath(String id) => '${ApiEndpoints.orders}/$id';
 
   @override
   Future<List<Order>> getOrders() async {
