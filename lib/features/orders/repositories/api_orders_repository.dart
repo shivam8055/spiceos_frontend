@@ -8,6 +8,8 @@ class ApiOrdersRepository implements OrdersRepository {
 
   final ApiClient api;
 
+  String _orderPath(int id) => '${ApiEndpoints.orders}/$id';
+
   @override
   Future<List<Order>> getOrders() async {
     final response = await api.get(ApiEndpoints.orders);
@@ -30,7 +32,7 @@ class ApiOrdersRepository implements OrdersRepository {
 
   @override
   Future<void> updateOrder(Order order) async {
-    await api.patch('${ApiEndpoints.orders}${order.id}', {
+    await api.patch(_orderPath(order.id), {
       'customer_id': order.customerId,
       'customer_name': order.customerName,
       'primary_item': order.primaryItem,
@@ -43,6 +45,6 @@ class ApiOrdersRepository implements OrdersRepository {
 
   @override
   Future<void> deleteOrder(String id) async {
-    await api.delete('${ApiEndpoints.orders}$id');
+    await api.delete('${ApiEndpoints.orders}/$id');
   }
 }
