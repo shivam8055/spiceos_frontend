@@ -16,12 +16,11 @@
 <body>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
-    // Cache-bust stale Flutter web deployments. This is especially important
-    // after a UI hotfix because an older service worker can otherwise keep
-    // serving an earlier main.dart.js bundle.
+    // Force a fresh Flutter shell whenever a new production build is published.
+    // The version is intentionally changed for each cache-sensitive release.
     (async function () {
       try {
-        const version = 'spiceos-web-20260825-delivery-status-v2';
+        const version = 'spiceos-web-20260826-delivery-status-v3';
         if (sessionStorage.getItem('__spiceos_web_version') !== version) {
           if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -39,7 +38,7 @@
         // Never block the application if cache cleanup is unavailable.
       }
       const script = document.createElement('script');
-      script.src = 'flutter_bootstrap.js?v=20260825-delivery-status-v2';
+      script.src = 'flutter_bootstrap.js?v=20260826-delivery-status-v3';
       script.async = true;
       document.body.appendChild(script);
     })();
