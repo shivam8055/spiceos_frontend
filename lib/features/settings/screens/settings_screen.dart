@@ -21,11 +21,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Restaurant? _restaurant;
   bool _loading = true;
+  bool _teamLoading = true;
+  List<Map<String, dynamic>> _team = [];
 
   @override
   void initState() {
     super.initState();
     _loadRestaurant();
+    _loadTeam();
   }
 
   Future<void> _loadRestaurant() async {
@@ -36,6 +39,65 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _restaurant = restaurant;
       _loading = false;
     });
+  }
+
+  Future<void> _loadTeam() async {
+    setState(() => _teamLoading = true);
+    try {
+      final response = await ref.read(apiClientProvider).get('/users/');
+      if (!mounted) return;
+      setState(() {
+        _team = (response.data as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        _teamLoading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _teamLoading = false);
+      _message(e.response?.data?['detail']?.toString() ?? 'Unable to load team members.');
+    } catch (_) {
+      if (mounted) setState(() => _teamLoading = false);
+    }
+  }
+
+  Future<void> _changeRole(Map<String, dynamic> member) async {
+    final currentRole = member['role']?.toString() ?? 'staff';
+    final role = await showDialog<String>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: Text('Role for ${member['name'] ?? member['email'] ?? 'team member'}'),
+        children: [
+          for (final option in const ['owner', 'manager', 'staff'])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, option),
+              child: Row(children: [
+                Expanded(child: Text(option[0].toUpperCase() + option.substring(1))),
+                if (option == currentRole) const Icon(Icons.check, size: 18),
+              ]),
+            ),
+        ],
+      ),
+    );
+    if (role == null || role == currentRole) return;
+    try {
+      await ref.read(apiClientProvider).patch('/users/${member['id']}/role', {'role': role});
+      _message('Role updated successfully.');
+      await _loadTeam();
+    } on DioException catch (e) {
+      _message(e.response?.data?['detail']?.toString() ?? 'Unable to update role.');
+    }
+  }
+
+  Future<void> _toggleMember(Map<String, dynamic> member) async {
+    final active = member['is_active'] == true;
+    try {
+      await ref.read(apiClientProvider).patch('/users/${member['id']}/status?is_active=${!active}', {});
+      _message(active ? 'Team member deactivated.' : 'Team member activated.');
+      await _loadTeam();
+    } on DioException catch (e) {
+      _message(e.response?.data?['detail']?.toString() ?? 'Unable to update team member status.');
+    }
   }
 
   Future<void> _createRestaurant() async {
@@ -87,6 +149,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _message(String text) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
@@ -96,7 +159,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadRestaurant,
+              onRefresh: () async {
+                await Future.wait([_loadRestaurant(), _loadTeam()]);
+              },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
@@ -109,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           children: [
                             Text('Restaurant Setup', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
                             SizedBox(height: 6),
-                            Text('Manage restaurant identity and the live menu used by QR ordering.'),
+                            Text('Manage restaurant identity, team access and the live menu used by QR ordering.'),
                           ],
                         ),
                       ),
@@ -125,6 +190,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   if (_restaurant == null) const _EmptyRestaurantCard(),
                   if (_restaurant != null) ...[
                     _RestaurantCard(restaurant: _restaurant!),
+                    const SizedBox(height: 20),
+                    _TeamCard(
+                      loading: _teamLoading,
+                      members: _team,
+                      onRefresh: _loadTeam,
+                      onRoleChange: _changeRole,
+                      onToggle: _toggleMember,
+                    ),
                     const SizedBox(height: 20),
                     Card(
                       child: Padding(
@@ -176,6 +249,71 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _TeamCard extends StatelessWidget {
+  const _TeamCard({required this.loading, required this.members, required this.onRefresh, required this.onRoleChange, required this.onToggle});
+  final bool loading;
+  final List<Map<String, dynamic>> members;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(Map<String, dynamic>) onRoleChange;
+  final Future<void> Function(Map<String, dynamic>) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Team & Access', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                SizedBox(height: 4),
+                Text('Owner-controlled roles and account activation for this restaurant.'),
+              ])),
+              IconButton(onPressed: onRefresh, tooltip: 'Refresh team', icon: const Icon(Icons.refresh)),
+            ]),
+            const SizedBox(height: 12),
+            if (loading)
+              const LinearProgressIndicator()
+            else if (members.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Text('No team members found.'))
+            else
+              ...members.map((member) {
+                final active = member['is_active'] == true;
+                final role = member['role']?.toString() ?? 'staff';
+                final name = member['name']?.toString().trim();
+                final email = member['email']?.toString() ?? '';
+                return Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(children: [
+                    CircleAvatar(child: Text((name?.isNotEmpty == true ? name![0] : email.isNotEmpty ? email[0] : '?').toUpperCase())),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(name?.isNotEmpty == true ? name! : email, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 3),
+                      Text(email, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ])),
+                    Chip(label: Text(role.toUpperCase())),
+                    const SizedBox(width: 8),
+                    Tooltip(message: 'Change role', child: IconButton(onPressed: () => onRoleChange(member), icon: const Icon(Icons.manage_accounts_outlined))),
+                    Switch(value: active, onChanged: (_) => onToggle(member)),
+                  ]),
+                );
+              }),
+          ],
+        ),
+      ),
     );
   }
 }
