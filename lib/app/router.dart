@@ -14,7 +14,7 @@ import '../features/menu/screens/menu_import_screen.dart';
 import '../features/menu/screens/menu_screen.dart';
 import '../features/orders/screens/new_order_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
-import '../features/qr/screens/qr_customer_order_screen.dart';
+import '../features/qr/screens/qr_customer_menu_screen.dart';
 import '../features/qr/screens/qr_tables_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
@@ -46,7 +46,7 @@ GoRouter createRouter(Ref ref) {
       GoRoute(path: '/menu', builder: (context, state) => const MenuScreen()),
       GoRoute(path: '/menu/import', builder: (context, state) => const MenuImportScreen()),
       GoRoute(path: '/qr-tables', builder: (context, state) => const QRTablesScreen()),
-      GoRoute(path: '/order/:token', builder: (context, state) => QRCustomerOrderScreen(token: state.pathParameters['token']!)),
+      GoRoute(path: '/order/:token', builder: (context, state) => QRCustomerMenuScreen(token: state.pathParameters['token']!)),
       GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
       GoRoute(path: '/accounting', builder: (context, state) => const AccountingScreen()),
