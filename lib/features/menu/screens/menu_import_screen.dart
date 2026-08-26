@@ -46,7 +46,6 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
     });
 
     try {
-      // Backend QR admin routes are mounted at /admin/*, not /qr/admin/*.
       final restaurant = await ref.read(apiClientProvider).get('/admin/restaurant');
       final restaurantId = restaurant.data['restaurant_id'] as String;
       final file = result.files.single;
@@ -94,22 +93,15 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Review menu item'),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
-              const SizedBox(height: 12),
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Item name')),
-              const SizedBox(height: 12),
-              TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
-              const SizedBox(height: 12),
-              TextField(
-                controller: price,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Price (₹)'),
-              ),
-            ],
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
+            const SizedBox(height: 12),
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Food item name')),
+            const SizedBox(height: 12),
+            TextField(controller: description, maxLines: 2, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 12),
+            TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price (₹)')),
+          ]),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -147,6 +139,16 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
     setState(() => _items.removeAt(index));
   }
 
+  Map<String, List<int>> get _groupedIndexes {
+    final grouped = <String, List<int>>{};
+    for (var index = 0; index < _items.length; index++) {
+      final raw = _items[index]['category']?.toString().trim() ?? '';
+      final category = raw.isEmpty ? 'Other' : raw;
+      grouped.putIfAbsent(category, () => []).add(index);
+    }
+    return grouped;
+  }
+
   Future<void> _confirm() async {
     if (_restaurantId == null || _items.isEmpty) return;
     setState(() {
@@ -180,6 +182,7 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final groups = _groupedIndexes;
     return Scaffold(
       appBar: AppBar(title: const Text('Import Menu with AI')),
       body: Center(
@@ -187,101 +190,98 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Upload your existing restaurant menu', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                const Text('SpiceOS reads the menu image, extracts categories, items and prices, then lets you review every item before publishing.'),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    SizedBox(width: 220, child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
-                    const SizedBox(width: 16),
-                    FilledButton.icon(onPressed: _busy ? null : _pickAndExtract, icon: const Icon(Icons.upload_file), label: Text(_busy ? 'Processing…' : 'Upload Menu')),
-                    if (_fileName != null) ...[
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(_fileName!, overflow: TextOverflow.ellipsis)),
-                    ],
-                  ],
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(children: [
-                        const Icon(Icons.error_outline, color: AppColors.error),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error))),
-                      ]),
-                    ),
-                  ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Upload your existing restaurant menu', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              const Text('SpiceOS reads the menu image, extracts categories, items and prices, then lets you review every item before publishing.'),
+              const SizedBox(height: 24),
+              Row(children: [
+                SizedBox(width: 220, child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
+                const SizedBox(width: 16),
+                FilledButton.icon(onPressed: _busy ? null : _pickAndExtract, icon: const Icon(Icons.upload_file), label: Text(_busy ? 'Processing…' : 'Upload Menu')),
+                if (_fileName != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_fileName!, overflow: TextOverflow.ellipsis)),
                 ],
-                if (_warnings.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('Review warnings', style: TextStyle(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 8),
-                        ..._warnings.map((w) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Text('• $w'))),
-                      ]),
-                    ),
-                  ),
-                ],
-                if (_items.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text('${_items.length} items extracted', style: const TextStyle(fontWeight: FontWeight.w700)),
-                      const Spacer(),
-                      const Text('Review and edit before publishing'),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Card(
-                    child: _items.isEmpty
-                        ? const Center(child: Text('Upload a clear JPG, PNG or WEBP menu image to preview the extracted items.'))
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: _items.length,
-                            separatorBuilder: (_, __) => const Divider(),
-                            itemBuilder: (_, i) {
-                              final item = _items[i];
-                              return ListTile(
-                                leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
-                                title: Text(item['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text('${item['category']?.toString() ?? ''}${item['description'] == null ? '' : ' • ${item['description']}'}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text('₹${item['price']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                    IconButton(tooltip: 'Edit', onPressed: _busy ? null : () => _editItem(i), icon: const Icon(Icons.edit_outlined)),
-                                    IconButton(tooltip: 'Remove', onPressed: _busy ? null : () => _removeItem(i), icon: const Icon(Icons.delete_outline)),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ),
-                if (_items.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: _busy ? null : _confirm,
-                      icon: const Icon(Icons.publish),
-                      label: Text(_busy ? 'Publishing…' : 'Publish ${_items.length} Items'),
-                    ),
-                  ),
-                ],
+              ]),
+              if (_error != null) ...[
+                const SizedBox(height: 16),
+                Card(child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+                  const Icon(Icons.error_outline, color: AppColors.error),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.error))),
+                ]))),
               ],
-            ),
+              if (_warnings.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Review warnings', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  ..._warnings.map((w) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Text('• $w'))),
+                ]))),
+              ],
+              if (_items.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Row(children: [
+                  Text('${_items.length} items extracted', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  const Text('Grouped by category • review and edit before publishing'),
+                ]),
+              ],
+              const SizedBox(height: 12),
+              Expanded(
+                child: Card(
+                  child: _items.isEmpty
+                      ? const Center(child: Text('Upload a clear JPG, PNG or WEBP menu image to preview the extracted items.'))
+                      : ListView(
+                          padding: const EdgeInsets.all(12),
+                          children: groups.entries.map((entry) {
+                            final category = entry.key;
+                            final indexes = entry.value;
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              elevation: 0,
+                              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                              child: ExpansionTile(
+                                initiallyExpanded: true,
+                                leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
+                                title: Text(category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                                subtitle: Text('${indexes.length} ${indexes.length == 1 ? 'item' : 'items'}'),
+                                children: indexes.map((index) {
+                                  final item = _items[index];
+                                  return Column(children: [
+                                    const Divider(height: 1),
+                                    ListTile(
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                      leading: const Icon(Icons.restaurant),
+                                      title: Text(item['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      subtitle: item['description'] == null ? null : Text(item['description'].toString()),
+                                      trailing: Wrap(spacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                                        Text('₹${item['price']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                        IconButton(tooltip: 'Edit item', onPressed: _busy ? null : () => _editItem(index), icon: const Icon(Icons.edit_outlined)),
+                                        IconButton(tooltip: 'Delete item', onPressed: _busy ? null : () => _removeItem(index), icon: const Icon(Icons.delete_outline)),
+                                      ]),
+                                    ),
+                                  ]);
+                                }).toList(),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+              ),
+              if (_items.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: _busy ? null : _confirm,
+                    icon: const Icon(Icons.publish),
+                    label: Text(_busy ? 'Publishing…' : 'Publish ${_items.length} Items'),
+                  ),
+                ),
+              ],
+            ]),
           ),
         ),
       ),
