@@ -17,6 +17,7 @@ class AppSidebar extends ConsumerWidget {
     NavigationItem(title: 'Menu', icon: Icons.restaurant_menu_outlined, route: '/menu'),
     NavigationItem(title: 'QR Tables', icon: Icons.qr_code_2_outlined, route: '/qr-tables'),
     NavigationItem(title: 'Delivery', icon: Icons.delivery_dining_outlined, route: '/delivery'),
+    NavigationItem(title: 'Accounting & GST', icon: Icons.account_balance_outlined, route: '/accounting'),
     NavigationItem(title: 'Reports', icon: Icons.bar_chart_outlined, route: '/reports'),
     NavigationItem(title: 'Settings', icon: Icons.settings_outlined, route: '/settings'),
   ];
@@ -24,53 +25,38 @@ class AppSidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
+    final user = ref.watch(authNotifierProvider).asData?.value;
+    final visible = items.where((item) {
+      if (item.route == '/accounting' || item.route == '/reports' || item.route == '/delivery') {
+        return user?.role == 'owner' || user?.role == 'manager';
+      }
+      if (item.route == '/settings' || item.route == '/qr-tables') return user?.role == 'owner';
+      return true;
+    }).toList();
 
     return Container(
       width: 260,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE5E7EB))),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 32),
-          const Text('🌶 SpiceOS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 32),
-          Expanded(
-            child: ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final selected = currentRoute == item.route;
-                return Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    leading: Icon(item.icon, color: selected ? Colors.deepOrange : Colors.grey),
-                    title: Text(item.title),
-                    selected: selected,
-                    selectedTileColor: const Color(0xFFFFF1EB),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onTap: () => context.go(item.route),
-                  ),
-                );
-              },
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Material(
-              color: Colors.transparent,
-              child: ListTile(
-                leading: const Icon(Icons.logout_outlined, color: Colors.grey),
-                title: const Text('Sign Out'),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onTap: () async => ref.read(authNotifierProvider.notifier).signOut(),
-              ),
-            ),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: Color(0xFFE5E7EB)))),
+      child: Column(children: [
+        const SizedBox(height: 32),
+        const Text('🌶 SpiceOS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 32),
+        Expanded(child: ListView.builder(itemCount: visible.length, itemBuilder: (context, index) {
+          final item = visible[index];
+          final selected = currentRoute == item.route;
+          return Material(color: Colors.transparent, child: ListTile(
+            leading: Icon(item.icon, color: selected ? Colors.deepOrange : Colors.grey),
+            title: Text(item.title), selected: selected, selectedTileColor: const Color(0xFFFFF1EB),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), onTap: () => context.go(item.route),
+          ));
+        })),
+        const Divider(height: 1, color: Color(0xFFE5E7EB)),
+        Padding(padding: const EdgeInsets.all(12), child: Material(color: Colors.transparent, child: ListTile(
+          leading: const Icon(Icons.logout_outlined, color: Colors.grey), title: const Text('Sign Out'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onTap: () async => ref.read(authNotifierProvider.notifier).signOut(),
+        ))),
+      ]),
     );
   }
 }
