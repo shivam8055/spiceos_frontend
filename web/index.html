@@ -16,11 +16,11 @@
 <body>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
-    // Force a fresh Flutter shell whenever a new production build is published.
-    // The version is intentionally changed for each cache-sensitive release.
+    // Delivery-status release: force the browser to discard every old Flutter
+    // shell/service-worker cache before loading the current application bundle.
     (async function () {
+      const version = 'spiceos-web-20260826-delivery-status-v4';
       try {
-        const version = 'spiceos-web-20260826-delivery-status-v3';
         if (sessionStorage.getItem('__spiceos_web_version') !== version) {
           if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -31,14 +31,16 @@
             await Promise.all(cacheNames.map((name) => caches.delete(name)));
           }
           sessionStorage.setItem('__spiceos_web_version', version);
-          window.location.reload();
+          const url = new URL(window.location.href);
+          url.searchParams.set('__spiceos_release', version);
+          window.location.replace(url.toString());
           return;
         }
       } catch (_) {
-        // Never block the application if cache cleanup is unavailable.
+        // Never block the application if cache APIs are unavailable.
       }
       const script = document.createElement('script');
-      script.src = 'flutter_bootstrap.js?v=20260826-delivery-status-v3';
+      script.src = 'flutter_bootstrap.js?__spiceos_release=' + encodeURIComponent(version);
       script.async = true;
       document.body.appendChild(script);
     })();
