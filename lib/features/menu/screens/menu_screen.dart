@@ -52,14 +52,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     if (_saving.contains(item.id)) return;
     setState(() => _saving.add(item.id));
     try {
-      final updated = await ref.read(menuRepositoryProvider).update(
-        itemId: item.id,
-        category: item.category,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        available: item.available,
-      );
+      final updated = await ref.read(menuRepositoryProvider).update(itemId: item.id, category: item.category, name: item.name, description: item.description, price: item.price, available: item.available);
       if (!mounted) return;
       setState(() {
         _items = _items.map((value) => value.id == updated.id ? updated : value).toList();
@@ -80,40 +73,28 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final description = TextEditingController(text: item.description ?? '');
     final price = TextEditingController(text: item.price.toStringAsFixed(2));
     bool available = item.available;
-
     final values = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Edit menu item'),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 420,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
-                const SizedBox(height: 12),
-                TextField(controller: name, decoration: const InputDecoration(labelText: 'Food item name')),
-                const SizedBox(height: 12),
-                TextField(controller: description, maxLines: 2, decoration: const InputDecoration(labelText: 'Description (optional)')),
-                const SizedBox(height: 12),
-                TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price (₹)')),
-                const SizedBox(height: 8),
-                SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Available for ordering'), value: available, onChanged: (value) => setDialogState(() => available = value)),
-              ]),
-            ),
-          ),
+          content: SingleChildScrollView(child: SizedBox(width: 420, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
+            const SizedBox(height: 12),
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Food item name')),
+            const SizedBox(height: 12),
+            TextField(controller: description, maxLines: 2, decoration: const InputDecoration(labelText: 'Description (optional)')),
+            const SizedBox(height: 12),
+            TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price (₹)')),
+            const SizedBox(height: 8),
+            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Available for ordering'), value: available, onChanged: (value) => setDialogState(() => available = value)),
+          ]))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
             FilledButton(onPressed: () {
               final parsed = double.tryParse(price.text.trim());
               if (category.text.trim().isEmpty || name.text.trim().isEmpty || parsed == null || parsed < 0) return;
-              Navigator.pop(dialogContext, {
-                'category': category.text.trim(),
-                'name': name.text.trim(),
-                'description': description.text.trim().isEmpty ? null : description.text.trim(),
-                'price': parsed,
-                'available': available,
-              });
+              Navigator.pop(dialogContext, {'category': category.text.trim(), 'name': name.text.trim(), 'description': description.text.trim().isEmpty ? null : description.text.trim(), 'price': parsed, 'available': available});
             }, child: const Text('Save')),
           ],
         ),
@@ -124,29 +105,12 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     description.dispose();
     price.dispose();
     if (values == null || !mounted) return;
-
-    final edited = MenuItem(
-      id: item.id,
-      category: values['category'] as String,
-      name: values['name'] as String,
-      description: values['description'] as String?,
-      price: values['price'] as double,
-      available: values['available'] as bool,
-      modifiers: item.modifiers,
-    );
+    final edited = MenuItem(id: item.id, category: values['category'] as String, name: values['name'] as String, description: values['description'] as String?, price: values['price'] as double, available: values['available'] as bool, modifiers: item.modifiers);
     await _saveItem(edited);
   }
 
   Future<void> _toggleAvailability(MenuItem item) async {
-    final updated = MenuItem(
-      id: item.id,
-      category: item.category,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      available: !item.available,
-      modifiers: item.modifiers,
-    );
+    final updated = MenuItem(id: item.id, category: item.category, name: item.name, description: item.description, price: item.price, available: !item.available, modifiers: item.modifiers);
     await _saveItem(updated);
   }
 
@@ -165,7 +129,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     if (confirmed != true || !mounted || _saving.contains(item.id)) return;
     setState(() => _saving.add(item.id));
     try {
-      await ref.read(menuRepositoryProvider).delete(itemId: item.id);
+      await ref.read(menuRepositoryProvider).delete(itemId: item.id, branchId: _branch.text.trim());
       if (!mounted) return;
       setState(() {
         _items = _items.where((entry) => entry.id != item.id).toList();
@@ -219,45 +183,43 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             if (_needsRestaurant) FilledButton.icon(onPressed: () => context.go('/settings'), icon: const Icon(Icons.storefront_outlined), label: const Text('Set Up Restaurant')),
           ]))),
         const SizedBox(height: 12),
-        Expanded(child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Card(child: _items.isEmpty
-                ? const Center(child: Text('No menu items yet. Import your existing menu or add your first item.'))
-                : ListView(
-                    padding: const EdgeInsets.all(12),
-                    children: groups.entries.map((entry) {
-                      final category = entry.key;
-                      final categoryItems = entry.value;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        elevation: 0,
-                        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                        child: ExpansionTile(
-                          initiallyExpanded: true,
-                          leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
-                          title: Text(category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                          subtitle: Text('${categoryItems.length} ${categoryItems.length == 1 ? 'item' : 'items'}'),
-                          children: categoryItems.map((item) {
-                            final saving = _saving.contains(item.id);
-                            return Column(children: [
-                              const Divider(height: 1),
-                              ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                                title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: item.description == null || item.description!.isEmpty ? null : Text(item.description!),
-                                trailing: Wrap(spacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                                  Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  IconButton(tooltip: 'Edit item', onPressed: saving ? null : () => _editItem(item), icon: const Icon(Icons.edit_outlined)),
-                                  IconButton(tooltip: 'Delete item', onPressed: saving ? null : () => _deleteItem(item), icon: const Icon(Icons.delete_outline)),
-                                  Switch(value: item.available, onChanged: saving ? null : (_) => _toggleAvailability(item)),
-                                ]),
-                              ),
-                            ]);
-                          }).toList(),
-                        ),
-                      );
-                    }).toList(),
-                  )),
+        Expanded(child: _loading ? const Center(child: CircularProgressIndicator()) : Card(child: _items.isEmpty
+            ? const Center(child: Text('No menu items yet. Import your existing menu or add your first item.'))
+            : ListView(
+                padding: const EdgeInsets.all(12),
+                children: groups.entries.map((entry) {
+                  final category = entry.key;
+                  final categoryItems = entry.value;
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    elevation: 0,
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                    child: ExpansionTile(
+                      initiallyExpanded: true,
+                      leading: CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: const Icon(Icons.restaurant_menu, color: AppColors.primary)),
+                      title: Text(category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                      subtitle: Text('${categoryItems.length} ${categoryItems.length == 1 ? 'item' : 'items'}'),
+                      children: categoryItems.map((item) {
+                        final saving = _saving.contains(item.id);
+                        return Column(children: [
+                          const Divider(height: 1),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                            title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: item.description == null || item.description!.isEmpty ? null : Text(item.description!),
+                            trailing: Wrap(spacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                              Text('₹${item.price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                              IconButton(tooltip: 'Edit item', onPressed: saving ? null : () => _editItem(item), icon: const Icon(Icons.edit_outlined)),
+                              IconButton(tooltip: 'Delete item', onPressed: saving ? null : () => _deleteItem(item), icon: const Icon(Icons.delete_outline)),
+                              Switch(value: item.available, onChanged: saving ? null : (_) => _toggleAvailability(item)),
+                            ]),
+                          ),
+                        ]);
+                      }).toList(),
+                    ),
+                  );
+                }).toList(),
+              ))),
       ],),
     );
   }
