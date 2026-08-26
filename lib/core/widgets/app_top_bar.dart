@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'responsive_layout.dart';
+
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
@@ -10,21 +12,34 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mobile = ResponsiveLayout.isMobile(context);
+
     return AppBar(
-      title: Text(title),
+      automaticallyImplyLeading: mobile,
+      titleSpacing: mobile ? 4 : 16,
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: mobile ? 20 : 22,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       actions: [
         IconButton(
+          tooltip: 'Search',
           onPressed: () {},
           icon: const Icon(Icons.search),
         ),
         IconButton(
+          tooltip: 'Notifications',
           onPressed: () {},
           icon: const Icon(Icons.notifications_none),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: CircleAvatar(
-            child: Icon(Icons.person),
+        Padding(
+          padding: EdgeInsets.only(right: mobile ? 8 : 16, left: 4),
+          child: const CircleAvatar(
+            radius: 18,
+            child: Icon(Icons.person, size: 20),
           ),
         ),
       ],
