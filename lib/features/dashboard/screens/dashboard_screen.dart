@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_shell.dart';
+import '../widgets/ai_insights.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/dashboard_stats.dart';
 import '../widgets/inventory_alerts.dart';
@@ -20,43 +21,28 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const DashboardHeader(),
-
             const SizedBox(height: 24),
-
             const DashboardStats(),
-
             const SizedBox(height: 24),
-
             const QuickActions(),
-
             const SizedBox(height: 24),
-
+            const AiInsights(),
+            const SizedBox(height: 24),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Expanded(
-                  flex: 2,
-                  child: SalesChart(),
-                ),
+                Expanded(flex: 2, child: SalesChart()),
                 SizedBox(width: 24),
-                Expanded(
-                  child: KitchenQueue(),
-                ),
+                Expanded(child: KitchenQueue()),
               ],
             ),
-
-            SizedBox(height: 24),
-
+            const SizedBox(height: 24),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Expanded(
-                  child: RecentOrdersCard(),
-                ),
+                Expanded(child: RecentOrdersCard()),
                 SizedBox(width: 24),
-                Expanded(
-                  child: InventoryAlerts(),
-                ),
+                Expanded(child: InventoryAlerts()),
               ],
             ),
           ],
