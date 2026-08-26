@@ -46,7 +46,8 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
     });
 
     try {
-      final restaurant = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
+      // Backend QR admin routes are mounted at /admin/*, not /qr/admin/*.
+      final restaurant = await ref.read(apiClientProvider).get('/admin/restaurant');
       final restaurantId = restaurant.data['restaurant_id'] as String;
       final file = result.files.single;
       final form = FormData.fromMap({
@@ -54,7 +55,7 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
         'branch_id': branch,
         'file': MultipartFile.fromBytes(file.bytes!, filename: file.name),
       });
-      final response = await ref.read(apiClientProvider).postMultipart('/qr/admin/menu-import/preview', form);
+      final response = await ref.read(apiClientProvider).postMultipart('/admin/menu-import/preview', form);
       final data = Map<String, dynamic>.from(response.data as Map);
       if (!mounted) return;
       setState(() {
@@ -153,7 +154,7 @@ class _MenuImportScreenState extends ConsumerState<MenuImportScreen> {
       _error = null;
     });
     try {
-      await ref.read(apiClientProvider).post('/qr/admin/menu-import/confirm', {
+      await ref.read(apiClientProvider).post('/admin/menu-import/confirm', {
         'restaurant_id': _restaurantId,
         'branch_id': _branch.text.trim(),
         'items': _items,
