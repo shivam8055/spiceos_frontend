@@ -14,7 +14,7 @@ class RolePermissions {
       return ownerRoles.contains(role);
     }
 
-    if (location == '/reports' || location == '/delivery') {
+    if (location == '/reports' || location == '/delivery' || location == '/accounting') {
       return managementRoles.contains(role);
     }
 
