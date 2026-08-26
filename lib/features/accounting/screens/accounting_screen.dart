@@ -35,7 +35,7 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen> with Single
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
     _loadAll();
   }
 
@@ -94,6 +94,15 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen> with Single
     await _loadAll();
   }
 
+  Future<void> _updatePurchasePayment(int invoiceId, String status) async {
+    try {
+      await ref.read(apiClientProvider).patch('/accounting/purchase-invoices/$invoiceId/payment', {'payment_status': status});
+      await _loadAll();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to update bill payment: $e')));
+    }
+  }
+
   Future<void> _createExpense() async {
     final amount = _num(_expenseAmount);
     if (_expenseCategory.text.trim().isEmpty || _expenseDescription.text.trim().isEmpty || amount <= 0) return;
@@ -127,14 +136,75 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen> with Single
   }
 
   Widget _salesTab() => ListView(children: [Card(child: Padding(padding: const EdgeInsets.all(16), child: Wrap(spacing: 12, runSpacing: 12, children: [_field('Subtotal', _salesSubtotal), _field('CGST', _salesCgst), _field('SGST', _salesSgst), _field('Total', _salesTotal), FilledButton(onPressed: _createSale, child: const Text('Create Sales Invoice'))]))), const SizedBox(height: 12), ...sales.map((x) => ListTile(title: Text('${x['invoice_number']} • ${x['customer_name']}'), subtitle: Text('₹${x['total']} • GST ₹${(x['cgst'] ?? 0) + (x['sgst'] ?? 0) + (x['igst'] ?? 0)}'), trailing: Text(x['payment_status'] ?? 'pending')))]);
-  Widget _purchaseTab() => ListView(children: [Card(child: Padding(padding: const EdgeInsets.all(16), child: Wrap(spacing: 12, runSpacing: 12, children: [_textField('Bill number', _purchaseBill), _textField('Vendor', _vendor), _field('Subtotal', _purchaseSubtotal), _field('CGST', _purchaseCgst), _field('SGST', _purchaseSgst), _field('Total', _purchaseTotal), FilledButton(onPressed: _createPurchase, child: const Text('Record Kitchen Purchase'))]))), const SizedBox(height: 12), ...purchases.map((x) => ListTile(title: Text('${x['bill_number']} • ${x['vendor_name']}'), subtitle: Text('₹${x['total']} • GST ₹${(x['cgst'] ?? 0) + (x['sgst'] ?? 0) + (x['igst'] ?? 0)}'), trailing: Text(x['payment_status'] ?? 'unpaid')))]);
+
+  Widget _purchaseTab() => ListView(children: [
+    Card(child: Padding(padding: const EdgeInsets.all(16), child: Wrap(spacing: 12, runSpacing: 12, children: [_textField('Bill number', _purchaseBill), _textField('Vendor', _vendor), _field('Subtotal', _purchaseSubtotal), _field('CGST', _purchaseCgst), _field('SGST', _purchaseSgst), _field('Total', _purchaseTotal), FilledButton(onPressed: _createPurchase, child: const Text('Record Kitchen Purchase'))]))),
+    const SizedBox(height: 12),
+    ...purchases.map((x) {
+      final status = x['payment_status']?.toString() ?? 'unpaid';
+      final id = x['id'] as int;
+      return ListTile(
+        title: Text('${x['bill_number']} • ${x['vendor_name']}'),
+        subtitle: Text('₹${x['total']} • GST ₹${(x['cgst'] ?? 0) + (x['sgst'] ?? 0) + (x['igst'] ?? 0)}'),
+        trailing: DropdownButton<String>(
+          value: status,
+          items: const [
+            DropdownMenuItem(value: 'unpaid', child: Text('Unpaid')),
+            DropdownMenuItem(value: 'partial', child: Text('Partial')),
+            DropdownMenuItem(value: 'paid', child: Text('Paid')),
+          ],
+          onChanged: (value) => value == null ? null : _updatePurchasePayment(id, value),
+        ),
+      );
+    }),
+  ]);
+
+  Widget _vendorsTab() {
+    final grouped = <String, Map<String, dynamic>>{};
+    for (final raw in purchases) {
+      final x = Map<String, dynamic>.from(raw as Map);
+      final vendor = x['vendor_name']?.toString() ?? 'Unknown Vendor';
+      final total = (x['total'] as num?)?.toDouble() ?? 0;
+      final status = x['payment_status']?.toString() ?? 'unpaid';
+      final entry = grouped.putIfAbsent(vendor, () => {'total': 0.0, 'outstanding': 0.0, 'bills': 0});
+      entry['total'] = (entry['total'] as double) + total;
+      entry['bills'] = (entry['bills'] as int) + 1;
+      if (status != 'paid') entry['outstanding'] = (entry['outstanding'] as double) + total;
+    }
+    final vendors = grouped.entries.toList()..sort((a, b) => (b.value['outstanding'] as double).compareTo(a.value['outstanding'] as double));
+    final outstanding = vendors.fold<double>(0, (sum, item) => sum + (item.value['outstanding'] as double));
+    return ListView(children: [
+      Row(children: [
+        _summaryCard('Vendor Bills', purchases.length),
+        const SizedBox(width: 12),
+        _summaryCard('Outstanding', outstanding),
+      ]),
+      const SizedBox(height: 16),
+      if (vendors.isEmpty)
+        const Card(child: Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Vendor ledger will appear after your first kitchen purchase.'))))
+      else
+        ...vendors.map((entry) {
+          final data = entry.value;
+          return Card(child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.storefront_outlined)),
+            title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('${data['bills']} bill(s) • Total purchases ₹${(data['total'] as double).toStringAsFixed(2)}'),
+            trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('Due ₹${(data['outstanding'] as double).toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w700, color: data['outstanding'] as double > 0 ? Colors.orange.shade800 : Colors.green.shade700)),
+              const Text('Outstanding', style: TextStyle(fontSize: 11)),
+            ]),
+          ));
+        }),
+    ]);
+  }
+
   Widget _expenseTab() => ListView(children: [Card(child: Padding(padding: const EdgeInsets.all(16), child: Wrap(spacing: 12, runSpacing: 12, children: [_textField('Category', _expenseCategory), _textField('Description', _expenseDescription), _field('Amount', _expenseAmount), FilledButton(onPressed: _createExpense, child: const Text('Record Expense'))]))), const SizedBox(height: 12), ...expenses.map((x) => ListTile(title: Text('${x['category']} • ${x['description']}'), subtitle: Text('₹${x['amount']}'), trailing: Text(x['payment_mode'] ?? 'cash')))]);
 
   @override
   Widget build(BuildContext context) => AppShell(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Row(children: [const Expanded(child: Text('Accounting & GST', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold))), if (loading) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()), IconButton(onPressed: _loadAll, icon: const Icon(Icons.refresh))]),
-    const SizedBox(height: 8), const Text('Sales invoices, kitchen purchase bills, expenses and GST-ready records.'),
-    const SizedBox(height: 20), TabBar(controller: _tabs, tabs: const [Tab(text: 'GST Summary'), Tab(text: 'Sales Invoices'), Tab(text: 'Purchase Bills'), Tab(text: 'Expenses')]),
-    const SizedBox(height: 16), Expanded(child: TabBarView(controller: _tabs, children: [_gstTab(), _salesTab(), _purchaseTab(), _expenseTab()]))
+    const SizedBox(height: 8), const Text('Sales invoices, kitchen purchase bills, vendor balances, expenses and GST-ready records.'),
+    const SizedBox(height: 20), TabBar(isScrollable: true, controller: _tabs, tabs: const [Tab(text: 'GST Summary'), Tab(text: 'Sales Invoices'), Tab(text: 'Purchase Bills'), Tab(text: 'Vendors'), Tab(text: 'Expenses')]),
+    const SizedBox(height: 16), Expanded(child: TabBarView(controller: _tabs, children: [_gstTab(), _salesTab(), _purchaseTab(), _vendorsTab(), _expenseTab()]))
   ]));
 }
