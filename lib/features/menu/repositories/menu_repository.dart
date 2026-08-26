@@ -29,7 +29,7 @@ class MenuRepository {
     return MenuItem.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
 
-  Future<void> delete({required int itemId}) async {
-    await _api.delete('/admin/menu-items/$itemId');
+  Future<void> delete({required int itemId, required String branchId}) async {
+    await _api.delete('/admin/menu-items/$itemId?branch_id=${Uri.encodeQueryComponent(branchId)}');
   }
 }
