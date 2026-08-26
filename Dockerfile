@@ -1,7 +1,7 @@
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+FROM ghcr.io/cirruslabs/flutter:3.44.0 AS build
 
-# The stable image can lag behind the current Flutter stable release.
-# Pin the SDK checkout to Flutter 3.44.8, which ships Dart 3.12.2.
+# CirrusLabs publishes the .0 image reliably; pin the actual SDK checkout to
+# Flutter 3.44.8 so pubspec's Dart 3.12.2 constraint is satisfied.
 RUN git -C "$FLUTTER_ROOT" fetch --depth 1 https://github.com/flutter/flutter.git 3.44.8 \
     && git -C "$FLUTTER_ROOT" checkout --force FETCH_HEAD \
     && flutter precache --web \
