@@ -1,9 +1,10 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // Keep the collection endpoint without a trailing slash so browser API
-  // requests do not receive FastAPI's 307 slash redirect.
+  // Use canonical collection URLs without a trailing slash. This avoids
+  // FastAPI's 307 redirect in Flutter Web, which can turn an authenticated
+  // cross-origin request into a browser-level CORS/connection failure.
   static const String orders = '/orders';
-  static const String inventory = '/inventory/';
+  static const String inventory = '/inventory';
   static const String authMe = '/auth/me';
 }
