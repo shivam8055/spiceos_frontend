@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/accounting/screens/accounting_screen.dart';
 import '../features/auth/models/role_permissions.dart';
 import '../features/auth/providers/auth_notifier.dart';
 import '../features/auth/screens/login_screen.dart';
@@ -27,12 +28,7 @@ GoRouter createRouter(Ref ref) {
       final location = state.matchedLocation;
       final loggingIn = location == '/login';
       final publicOrder = location.startsWith('/order/');
-
-      // QR customer ordering is intentionally public. The QR token is the
-      // authorization context and the backend resolves it to the restaurant
-      // and table; never require staff Firebase authentication here.
       if (publicOrder) return null;
-
       if (authState.isLoading) return null;
       if (user == null && !loggingIn) return '/login';
       if (user != null && loggingIn) return '/';
@@ -53,6 +49,7 @@ GoRouter createRouter(Ref ref) {
       GoRoute(path: '/order/:token', builder: (context, state) => QRCustomerOrderScreen(token: state.pathParameters['token']!)),
       GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
+      GoRoute(path: '/accounting', builder: (context, state) => const AccountingScreen()),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
     ],
   );
