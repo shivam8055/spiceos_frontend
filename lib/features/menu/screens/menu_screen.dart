@@ -127,8 +127,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
 
     final edited = MenuItem(
       id: item.id,
-      restaurantId: item.restaurantId,
-      branchId: item.branchId,
       category: values['category'] as String,
       name: values['name'] as String,
       description: values['description'] as String?,
@@ -142,8 +140,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   Future<void> _toggleAvailability(MenuItem item) async {
     final updated = MenuItem(
       id: item.id,
-      restaurantId: item.restaurantId,
-      branchId: item.branchId,
       category: item.category,
       name: item.name,
       description: item.description,
