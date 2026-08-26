@@ -28,4 +28,8 @@ class MenuRepository {
     final response = await _api.patch('/admin/menu-items/$itemId', payload);
     return MenuItem.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
+
+  Future<void> delete({required int itemId}) async {
+    await _api.delete('/admin/menu-items/$itemId');
+  }
 }
