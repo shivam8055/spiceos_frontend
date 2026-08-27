@@ -8,6 +8,7 @@ import '../features/auth/screens/login_screen.dart';
 import '../features/customers/screens/customers_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/delivery/screens/delivery_screen.dart';
+import '../features/delivery/screens/delivery_tracking_screen.dart';
 import '../features/inventory/screens/inventory_screen.dart';
 import '../features/kitchen/screens/kitchen_screen.dart';
 import '../features/menu/screens/menu_import_screen.dart';
@@ -28,7 +29,8 @@ GoRouter createRouter(Ref ref) {
       final location = state.matchedLocation;
       final loggingIn = location == '/login';
       final publicOrder = location.startsWith('/order/');
-      if (publicOrder) return null;
+      final publicDelivery = location.startsWith('/track/');
+      if (publicOrder || publicDelivery) return null;
       if (authState.isLoading) return null;
       if (user == null && !loggingIn) return '/login';
       if (user != null && loggingIn) return '/';
@@ -47,6 +49,7 @@ GoRouter createRouter(Ref ref) {
       GoRoute(path: '/menu/import', builder: (context, state) => const MenuImportScreen()),
       GoRoute(path: '/qr-tables', builder: (context, state) => const QRTablesScreen()),
       GoRoute(path: '/order/:token', builder: (context, state) => QRCustomerMenuScreen(token: state.pathParameters['token']!)),
+      GoRoute(path: '/track/:token', builder: (context, state) => DeliveryTrackingScreen(token: state.pathParameters['token']!)),
       GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
       GoRoute(path: '/accounting', builder: (context, state) => const AccountingScreen()),
