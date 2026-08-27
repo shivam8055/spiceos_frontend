@@ -7,9 +7,10 @@ import '../features/auth/providers/auth_notifier.dart';
 import 'router.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Recreate the router whenever authentication/profile state changes so
-  // redirect rules are evaluated immediately after login/logout.
-  ref.watch(authNotifierProvider);
+  // Keep one router instance alive. Recreating GoRouter whenever auth state
+  // changes can reset the active location and make navigation appear to do
+  // nothing. Authentication screens explicitly navigate after a successful
+  // sign-in/sign-out, while route guards still read the latest auth state.
   return createRouter(ref);
 });
 
