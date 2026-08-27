@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -13,22 +14,10 @@ class QuickActions extends StatelessWidget {
       spacing: AppSpacing.lg,
       runSpacing: AppSpacing.lg,
       children: const [
-        _ActionCard(
-          title: 'New Order',
-          icon: Icons.add_shopping_cart,
-        ),
-        _ActionCard(
-          title: 'Kitchen',
-          icon: AppIcons.kitchen,
-        ),
-        _ActionCard(
-          title: 'Inventory',
-          icon: AppIcons.inventory,
-        ),
-        _ActionCard(
-          title: 'Customers',
-          icon: AppIcons.customers,
-        ),
+        _ActionCard(title: 'New Order', icon: Icons.add_shopping_cart, route: '/orders/new'),
+        _ActionCard(title: 'Kitchen', icon: AppIcons.kitchen, route: '/kitchen'),
+        _ActionCard(title: 'Inventory', icon: AppIcons.inventory, route: '/inventory'),
+        _ActionCard(title: 'Customers', icon: AppIcons.customers, route: '/customers'),
       ],
     );
   }
@@ -37,10 +26,12 @@ class QuickActions extends StatelessWidget {
 class _ActionCard extends StatelessWidget {
   final String title;
   final IconData icon;
+  final String route;
 
   const _ActionCard({
     required this.title,
     required this.icon,
+    required this.route,
   });
 
   @override
@@ -49,7 +40,7 @@ class _ActionCard extends StatelessWidget {
       width: 180,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {},
+        onTap: () => context.go(route),
         child: AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -58,10 +49,7 @@ class _ActionCard extends StatelessWidget {
                 Icon(icon),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    title,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(title, overflow: TextOverflow.ellipsis),
                 ),
               ],
             ),
