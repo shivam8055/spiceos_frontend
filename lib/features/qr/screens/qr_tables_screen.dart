@@ -24,6 +24,7 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
   final _tableName = TextEditingController();
   final _session = TextEditingController(text: 'default');
   QRTable? _created;
+  String? _whatsappUrl;
   bool _saving = false;
   String? _restaurantId;
   String? _error;
@@ -33,23 +34,25 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
     try {
       final response = await ref.read(apiClientProvider).get('/qr/admin/restaurant');
       if (!mounted) return;
-      setState(() {
-        _restaurantId = response.data['restaurant_id'] as String;
-        _error = null;
-        _needsRestaurant = false;
-      });
+      setState(() { _restaurantId = response.data['restaurant_id'] as String; _error = null; _needsRestaurant = false; });
     } on DioException catch (e) {
       if (!mounted) return;
       final status = e.response?.statusCode;
       final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
-      setState(() {
-        _restaurantId = null;
-        _needsRestaurant = status == 409 || (detail?.toLowerCase().contains('not associated with a restaurant') ?? false);
-        _error = detail ?? 'Unable to load the restaurant.';
-      });
+      setState(() { _restaurantId = null; _needsRestaurant = status == 409 || (detail?.toLowerCase().contains('not associated with a restaurant') ?? false); _error = detail ?? 'Unable to load the restaurant.'; });
     } catch (e) {
       if (!mounted) return;
       setState(() { _restaurantId = null; _error = e.toString(); });
+    }
+  }
+
+  Future<void> _loadWhatsAppLink(QRTable table) async {
+    try {
+      final response = await ref.read(apiClientProvider).get('/webhooks/whatsapp/admin/qr-link', queryParameters: {'qr_token': table.token, 'restaurant_id': table.restaurantId, 'branch_id': table.branchId});
+      if (!mounted) return;
+      setState(() => _whatsappUrl = response.data['url']?.toString());
+    } catch (_) {
+      if (mounted) setState(() => _whatsappUrl = null);
     }
   }
 
@@ -60,17 +63,12 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
       setState(() => _error = 'Branch, table ID and table name are required.');
       return;
     }
-    setState(() { _saving = true; _error = null; });
+    setState(() { _saving = true; _error = null; _whatsappUrl = null; });
     try {
-      final table = await ref.read(qrTableRepositoryProvider).create(
-        restaurantId: restaurantId,
-        branchId: _branch.text.trim(),
-        tableId: _tableId.text.trim(),
-        tableName: _tableName.text.trim(),
-        sessionId: _session.text.trim().isEmpty ? 'default' : _session.text.trim(),
-      );
+      final table = await ref.read(qrTableRepositoryProvider).create(restaurantId: restaurantId, branchId: _branch.text.trim(), tableId: _tableId.text.trim(), tableName: _tableName.text.trim(), sessionId: _session.text.trim().isEmpty ? 'default' : _session.text.trim());
       if (!mounted) return;
       setState(() { _created = table; _saving = false; });
+      await _loadWhatsAppLink(table);
     } on DioException catch (e) {
       if (!mounted) return;
       final detail = e.response?.data is Map ? e.response?.data['detail']?.toString() : null;
@@ -83,103 +81,47 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
 
   @override
   void initState() { super.initState(); _loadRestaurant(); }
-
   @override
-  void dispose() {
-    _branch.dispose(); _tableId.dispose(); _tableName.dispose(); _session.dispose(); super.dispose();
+  void dispose() { _branch.dispose(); _tableId.dispose(); _tableName.dispose(); _session.dispose(); super.dispose(); }
+
+  Future<void> _copy(String value, String message) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return AppShell(
-      child: ListView(
-        children: [
-          const Text('QR Table Management', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          const Text('Create secure restaurant-owned QR codes for each table.'),
-          const SizedBox(height: 24),
-          if (_needsRestaurant)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    const Icon(Icons.storefront_outlined, size: 42),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Restaurant setup required', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-                          SizedBox(height: 6),
-                          Text('Create or connect your restaurant before generating table QR codes. Your QR codes will then belong to that restaurant.'),
-                        ],
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: () => context.go('/settings'),
-                      icon: Icon(Icons.add_business_outlined),
-                      label: Text('Set Up Restaurant'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (_needsRestaurant) const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Create Table QR', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 18),
-                Row(children: [
-                  Expanded(child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextField(controller: _tableId, decoration: const InputDecoration(labelText: 'Table ID', hintText: 'T01'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextField(controller: _tableName, decoration: const InputDecoration(labelText: 'Table name', hintText: 'Table 1'))),
-                ]),
-                const SizedBox(height: 12),
-                SizedBox(width: 260, child: TextField(controller: _session, decoration: const InputDecoration(labelText: 'Session ID'))),
-                const SizedBox(height: 18),
-                FilledButton.icon(onPressed: _saving || _restaurantId == null ? null : _create, icon: const Icon(Icons.qr_code_2), label: Text(_saving ? 'Creating…' : 'Generate QR')),
-                if (_error != null && !_needsRestaurant) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                ],
-              ]),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (_created != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  QrImageView(data: _created!.qrUrl, version: QrVersions.auto, size: 220),
-                  const SizedBox(width: 28),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('QR created successfully', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 12),
-                    Text('${_created!.tableName} • ${_created!.branchId}'),
-                    const SizedBox(height: 10),
-                    SelectableText(_created!.qrUrl),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: _created!.qrUrl));
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('QR URL copied.')));
-                      },
-                      icon: const Icon(Icons.copy), label: const Text('Copy QR URL'),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('The token is generated by the backend and resolves to this restaurant/table. Client-side restaurant IDs are not trusted.'),
-                  ])),
-                ]),
-              ),
-            ),
-        ],
-      ),
+      child: ListView(children: [
+        const Text('QR Table Management', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        const Text('Create secure QR codes for table ordering and WhatsApp ordering.'),
+        const SizedBox(height: 24),
+        if (_needsRestaurant) Card(child: Padding(padding: const EdgeInsets.all(24), child: Row(children: [
+          const Icon(Icons.storefront_outlined, size: 42), const SizedBox(width: 16),
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Restaurant setup required', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)), SizedBox(height: 6), Text('Create or connect your restaurant before generating table QR codes.') ])),
+          FilledButton.icon(onPressed: () => context.go('/settings'), icon: const Icon(Icons.add_business_outlined), label: const Text('Set Up Restaurant')),
+        ]))),
+        if (_needsRestaurant) const SizedBox(height: 16),
+        Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Create Table QR', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 18),
+          Row(children: [Expanded(child: TextField(controller: _branch, decoration: const InputDecoration(labelText: 'Branch ID'))), const SizedBox(width: 12), Expanded(child: TextField(controller: _tableId, decoration: const InputDecoration(labelText: 'Table ID', hintText: 'T01'))), const SizedBox(width: 12), Expanded(child: TextField(controller: _tableName, decoration: const InputDecoration(labelText: 'Table name', hintText: 'Table 1')))]),
+          const SizedBox(height: 12), SizedBox(width: 260, child: TextField(controller: _session, decoration: const InputDecoration(labelText: 'Session ID'))), const SizedBox(height: 18),
+          FilledButton.icon(onPressed: _saving || _restaurantId == null ? null : _create, icon: const Icon(Icons.qr_code_2), label: Text(_saving ? 'Creating…' : 'Generate QR')),
+          if (_error != null && !_needsRestaurant) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: Colors.red))],
+        ]))),
+        const SizedBox(height: 20),
+        if (_created != null) Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${_created!.tableName} • ${_created!.branchId}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), const SizedBox(height: 18),
+          Wrap(spacing: 32, runSpacing: 24, children: [
+            Column(children: [QrImageView(data: _created!.qrUrl, version: QrVersions.auto, size: 220), const SizedBox(height: 8), const Text('SpiceOS menu QR', style: TextStyle(fontWeight: FontWeight.w600)), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () => _copy(_created!.qrUrl, 'Menu QR URL copied.'), icon: const Icon(Icons.copy), label: const Text('Copy menu URL'))]),
+            if (_whatsappUrl != null) Column(children: [QrImageView(data: _whatsappUrl!, version: QrVersions.auto, size: 220), const SizedBox(height: 8), const Text('WhatsApp order QR', style: TextStyle(fontWeight: FontWeight.w600)), const SizedBox(height: 8), OutlinedButton.icon(onPressed: () => _copy(_whatsappUrl!, 'WhatsApp QR URL copied.'), icon: const Icon(Icons.copy), label: const Text('Copy WhatsApp URL'))]),
+          ]),
+          const SizedBox(height: 18),
+          if (_whatsappUrl == null) const Text('WhatsApp QR is unavailable until the backend WhatsApp configuration is set.', style: TextStyle(color: Colors.orange)),
+          if (_whatsappUrl != null) SelectableText(_whatsappUrl!),
+        ]))),
+      ]),
     );
   }
 }
