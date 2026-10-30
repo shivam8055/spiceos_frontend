@@ -48,7 +48,12 @@ class _QRTablesScreenState extends ConsumerState<QRTablesScreen> {
 
   Future<void> _loadWhatsAppLink(QRTable table) async {
     try {
-      final response = await ref.read(apiClientProvider).get('/webhooks/whatsapp/admin/qr-link', queryParameters: {'qr_token': table.qrToken, 'restaurant_id': _restaurantId, 'branch_id': table.branchId});
+      final query = Uri(queryParameters: {
+        'qr_token': table.qrToken,
+        'restaurant_id': _restaurantId,
+        'branch_id': table.branchId,
+      }).query;
+      final response = await ref.read(apiClientProvider).get('/webhooks/whatsapp/admin/qr-link?$query');
       if (!mounted) return;
       setState(() => _whatsappUrl = response.data['url']?.toString());
     } catch (_) {
