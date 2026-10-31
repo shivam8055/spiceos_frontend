@@ -55,12 +55,77 @@ class OrderDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: Text(order.primaryItem)),
-                        Text('₹${order.totalAmount.toStringAsFixed(0)}'),
-                      ],
-                    ),
+                    if (order.items.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'ORDER ITEMS',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${order.items.fold<int>(0, (sum, item) => sum + item.quantity)} items',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...order.items.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                '× ${item.quantity}',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(width: 16),
+                              SizedBox(
+                                width: 76,
+                                child: Text(
+                                  '₹${item.total.toStringAsFixed(0)}',
+                                  textAlign: TextAlign.end,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Order total',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Text(
+                            '₹${order.totalAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ] else
+                      Row(
+                        children: [
+                          Expanded(child: Text(order.primaryItem)),
+                          Text('₹${order.totalAmount.toStringAsFixed(0)}'),
+                        ],
+                      ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
