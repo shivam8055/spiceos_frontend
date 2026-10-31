@@ -21,6 +21,7 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
   Map<String, dynamic> _context = const {};
   List<_Item> _items = const [];
   final Map<int, int> _cart = <int, int>{};
+  final TextEditingController _searchController = TextEditingController();
 
   String _category = 'All';
   String _foodFilter = 'All';
@@ -44,6 +45,7 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -96,7 +98,9 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
     return _items.where((item) {
       final categoryMatches = _category == 'All' || item.category == _category;
       final foodMatches = _foodFilter == 'All' || item.foodType == _foodFilter;
-      return categoryMatches && foodMatches;
+      final query = _searchController.text.trim().toLowerCase();
+      final searchMatches = query.isEmpty || item.name.toLowerCase().contains(query) || item.category.toLowerCase().contains(query) || (item.description?.toLowerCase().contains(query) ?? false);
+      return categoryMatches && foodMatches && searchMatches;
     }).toList();
   }
 
@@ -486,6 +490,22 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search dishes…',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchController.text.isEmpty ? null : IconButton(
+                            onPressed: () { _searchController.clear(); setState(() {}); },
+                            icon: const Icon(Icons.close),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 44,
@@ -574,6 +594,7 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
   }
 
   Widget _itemTile(_Item item) {
+    final quantity = _cart[item.id] ?? 0;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       leading: Text(item.symbol, style: const TextStyle(fontSize: 21)),
@@ -594,10 +615,20 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
           const SizedBox(width: 8),
           if (!item.available)
             const Text('Unavailable', style: TextStyle(fontSize: 12)),
-          if (item.available)
+          if (item.available && quantity == 0)
             IconButton(
+              tooltip: 'Add to cart',
               onPressed: () => _qty(item, 1),
               icon: const Icon(Icons.add_circle, color: AppColors.primary),
+            ),
+          if (item.available && quantity > 0)
+            Container(
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                IconButton(tooltip: 'Remove one', visualDensity: VisualDensity.compact, onPressed: () => _qty(item, -1), icon: const Icon(Icons.remove, size: 18)),
+                Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800)),
+                IconButton(tooltip: 'Add one', visualDensity: VisualDensity.compact, onPressed: () => _qty(item, 1), icon: const Icon(Icons.add, size: 18)),
+              ]),
             ),
         ],
       ),
