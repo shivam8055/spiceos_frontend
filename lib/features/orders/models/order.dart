@@ -1,3 +1,5 @@
+import 'order_item.dart';
+
 enum OrderStatus {
   created,
   preparing,
@@ -29,6 +31,7 @@ class Order {
   final double totalAmount;
   final String orderSource;
   final String? transactionCode;
+  final List<OrderItem> items;
 
   const Order({
     required this.id,
@@ -46,6 +49,7 @@ class Order {
     required this.totalAmount,
     required this.orderSource,
     this.transactionCode,
+    this.items = const [],
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -65,6 +69,14 @@ class Order {
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
       orderSource: json['order_source']?.toString() ?? 'Unknown',
       transactionCode: _nullableString(json['transaction_code']),
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map((item) => OrderItem(
+                name: item['item_name']?.toString() ?? 'Item',
+                quantity: (item['quantity'] as num?)?.toInt() ?? 1,
+                price: (item['unit_price'] as num?)?.toDouble() ?? 0,
+              ))
+          .toList(growable: false),
     );
   }
 
@@ -152,6 +164,14 @@ class Order {
       'total': totalAmount,
       'order_source': orderSource,
       'transaction_code': transactionCode,
+      'items': items
+          .map((item) => {
+                'item_name': item.name,
+                'quantity': item.quantity,
+                'unit_price': item.price,
+                'line_total': item.total,
+              })
+          .toList(),
     };
   }
 
@@ -171,6 +191,7 @@ class Order {
     double? totalAmount,
     String? orderSource,
     String? transactionCode,
+    List<OrderItem>? items,
   }) {
     return Order(
       id: id ?? this.id,
@@ -188,6 +209,7 @@ class Order {
       totalAmount: totalAmount ?? this.totalAmount,
       orderSource: orderSource ?? this.orderSource,
       transactionCode: transactionCode ?? this.transactionCode,
+      items: items ?? this.items,
     );
   }
 }
