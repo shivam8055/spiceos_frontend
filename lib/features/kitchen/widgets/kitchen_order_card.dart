@@ -86,11 +86,57 @@ class KitchenOrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             KitchenTimer(startedAt: timerStart),
-            if (order.primaryItem.isNotEmpty) ...[
+            if (order.items.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ITEMS • ${order.items.fold<int>(0, (sum, item) => sum + item.quantity)} total',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...order.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.name,
+                                softWrap: true,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '× ${item.quantity}',
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (order.primaryItem.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                '• ${order.primaryItem}',
-                maxLines: 1,
+                '• ${order.primaryItem}  × 1',
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
