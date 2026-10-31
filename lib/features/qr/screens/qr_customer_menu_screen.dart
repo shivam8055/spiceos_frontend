@@ -263,11 +263,13 @@ class _QRCustomerMenuScreenState extends ConsumerState<QRCustomerMenuScreen> {
                         final address = addressController.text.trim();
                         final city = cityController.text.trim();
                         final pin = pinController.text.trim();
-                        if (name.isEmpty || !RegExp(r'^\d{10}.hasMatch(phone)) {
+                        final validPhone = phone.length == 10 && phone.codeUnits.every((digit) => digit >= 48 && digit <= 57);
+                        if (name.isEmpty || !validPhone) {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your name and valid 10-digit phone number.')));
                           return;
                         }
-                        if (delivery && (address.isEmpty || city.isEmpty || !(latitude == null && !RegExp(r'^\d{6})) {
+                        final validPin = pin.length == 6 && pin.codeUnits.every((digit) => digit >= 48 && digit <= 57);
+                        if (delivery && (address.isEmpty || city.isEmpty || (latitude == null && !validPin))) {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter address, city and valid 6-digit PIN.')));
                           return;
                         }
@@ -764,7 +766,7 @@ class _Item {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your name and valid 10-digit phone number.')));
                           return;
                         }
-                        if (delivery && (address.isEmpty || city.isEmpty || !RegExp(r'^\\d{6}$').hasMatch(pin))) {
+                        final validPin = pin.length == 6 && pin.codeUnits.every((digit) => digit >= 48 && digit <= 57);
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter address, city and valid 6-digit PIN.')));
                           return;
                         }
@@ -1754,7 +1756,7 @@ class _Item {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your name and valid 10-digit phone number.')));
                           return;
                         }
-                        if (delivery && (address.isEmpty || city.isEmpty || !RegExp(r'^\\d{6}$').hasMatch(pin))) {
+                        final validPin = pin.length == 6 && pin.codeUnits.every((digit) => digit >= 48 && digit <= 57);
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter address, city and valid 6-digit PIN.')));
                           return;
                         }
